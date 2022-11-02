@@ -1,0 +1,18 @@
+
+project_name: awsmocker
+
+builds:
+- skip: true
+
+checksum:
+  name_template: 'checksums.txt'
+
+snapshot:
+  name_template: "{{ .Version }}"
+
+release:
+  footer: |
+    **Full Changelog**: https://github.com/webdestroya/awsmocker/compare/{{ .PreviousTag }}...{{ .Tag }}
+
+changelog:
+  skip: true

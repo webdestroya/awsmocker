@@ -1,0 +1,61 @@
+linters:
+  disable-all: true
+  enable:
+    - errcheck
+    - gofmt
+    - goimports
+    - gosec
+    - gosimple
+    - govet
+    - ineffassign
+    - misspell
+    - prealloc
+    - staticcheck
+    - typecheck
+    - unconvert
+    - unused
+    - asciicheck
+    - errorlint
+    - depguard
+    - goconst
+    - makezero
+    - nonamedreturns
+    - predeclared
+
+issues:
+  exclude:
+    - "Error return value of .((os\\.)?std(out|err)\\..*|.*Close|.*\\.Exit|.*Flush|os\\.Remove(All)?|.*printf?|os\\.(Un)?Setenv|io\\.WriteString|io\\.Copy). is not checked"
+    - 'declaration of "err"'
+  exclude-rules:
+
+    # it's all fake
+    - text: "G101" # G101: potential hard coded creds
+      linters:
+        - gosec
+
+
+# output configuration options
+output:
+  format: 'colored-line-number'
+  print-issued-lines: true
+  print-linter-name: true
+
+linters-settings:
+  depguard:
+    list-type: denylist
+    packages:
+      - github.com/aws/aws-sdk-go/aws
+    packages-with-error-message:
+      - github.com/aws/aws-sdk-go/aws: 'use v2 sdk instead'
+
+  gocritic:
+    disabled-checks:
+      - newDeref # it's wrong on generics
+
+  govet:
+    check-shadowing: true
+    # enable-all: true
+
+run:
+  skip-dirs:
+    - scripts

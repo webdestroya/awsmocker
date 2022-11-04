@@ -8,7 +8,7 @@ import (
 var (
 	MockStsGetCallerIdentityValid = &MockedEndpoint{
 		Request: &MockedRequest{
-			Service: "iam",
+			Service: "sts",
 			Action:  "GetCallerIdentity",
 		},
 		Response: &MockedResponse{

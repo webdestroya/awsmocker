@@ -26,8 +26,9 @@ func TestResetProxyEnvHack(t *testing.T) {
 
 func TestEcsDescribeServices(t *testing.T) {
 	closeMocker, _, _ := awsmocker.StartMockServer(&awsmocker.MockerOptions{
-		T:       t,
-		Verbose: true,
+		T:                t,
+		Verbose:          true,
+		SkipDefaultMocks: true,
 		Mocks: []*awsmocker.MockedEndpoint{
 			{
 				Request: &awsmocker.MockedRequest{
@@ -68,8 +69,9 @@ func TestEcsDescribeServices(t *testing.T) {
 
 func TestStsGetCallerIdentity_WithObj(t *testing.T) {
 	closeMocker, _, _ := awsmocker.StartMockServer(&awsmocker.MockerOptions{
-		T:       t,
-		Verbose: true,
+		T:                t,
+		Verbose:          true,
+		SkipDefaultMocks: true,
 		Mocks: []*awsmocker.MockedEndpoint{
 			{
 				Request: &awsmocker.MockedRequest{
@@ -103,8 +105,9 @@ func TestStsGetCallerIdentity_WithObj(t *testing.T) {
 
 func TestStsGetCallerIdentity_WithMap(t *testing.T) {
 	closeMocker, _, _ := awsmocker.StartMockServer(&awsmocker.MockerOptions{
-		T:       t,
-		Verbose: true,
+		T:                t,
+		Verbose:          true,
+		SkipDefaultMocks: true,
 		Mocks: []*awsmocker.MockedEndpoint{
 			{
 				Request: &awsmocker.MockedRequest{
@@ -120,6 +123,26 @@ func TestStsGetCallerIdentity_WithMap(t *testing.T) {
 				},
 			},
 		},
+	})
+	defer closeMocker()
+
+	stsClient := sts.NewFromConfig(getAwsConfig())
+
+	resp, err := stsClient.GetCallerIdentity(context.TODO(), nil)
+	if err != nil {
+		t.Errorf("Error STS.GetCallerIdentity: %s", err)
+		return
+	}
+
+	if *resp.Account != awsmocker.DefaultAccountId {
+		t.Errorf("AccountID Mismatch: %v", *resp.Account)
+	}
+}
+
+func TestDefaultMocks(t *testing.T) {
+	closeMocker, _, _ := awsmocker.StartMockServer(&awsmocker.MockerOptions{
+		T:       t,
+		Verbose: true,
 	})
 	defer closeMocker()
 

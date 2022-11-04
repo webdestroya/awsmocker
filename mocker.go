@@ -38,6 +38,7 @@ const (
 	envAwsContAuthToken  = "AWS_CONTAINER_AUTHORIZATION_TOKEN"
 	envAwsConfigFile     = "AWS_CONFIG_FILE"
 	envAwsSharedCredFile = "AWS_SHARED_CREDENTIALS_FILE"
+	envAwsDefaultRegion  = "AWS_DEFAULT_REGION"
 )
 
 var relevantEnvVars = [...]string{
@@ -116,6 +117,10 @@ func newMockServer(options *MockerOptions) *mockerServer {
 		panic("You must provide T or TempDir")
 	}
 
+	if !options.SkipDefaultMocks {
+		options.Mocks = append(options.Mocks, MockStsGetCallerIdentityValid)
+	}
+
 	// prepare the mock endpoints
 	for i := range options.Mocks {
 		options.Mocks[i].prep()
@@ -157,6 +162,7 @@ func newMockServer(options *MockerOptions) *mockerServer {
 	server.OverrideEnvVar(envHttpProxy, ts.URL)
 	server.OverrideEnvVar(envHttpsProxy, ts.URL)
 	server.OverrideEnvVar(envAwsEc2MetaDisable, "true")
+	server.OverrideEnvVar(envAwsDefaultRegion, "us-east-1")
 
 	if !options.DoNotOverrideCreds {
 		server.OverrideEnvVar(envAwsAccessKey, "fakekey")
@@ -218,7 +224,9 @@ func handleRequest(options *MockerOptions, req *http.Request, ctx *goproxy.Proxy
 	}
 
 	log.Printf("WARN: No matching mocks found for this request!")
-	// recvReq.DebugDump()
+	if !GlobalDebugMode {
+		recvReq.DebugDump()
+	}
 
 	return req, generateErrorStruct("AccessDenied", "No matching request mock was found for this").getResponse(recvReq).toHttpResponse(req)
 }

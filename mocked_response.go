@@ -29,6 +29,7 @@ type MockedResponse struct {
 
 	// Do not wrap the xml response in ACTIONResponse>ACTIONResult
 	DoNotWrap bool
+	RootTag   string
 
 	rawBody string
 
@@ -97,7 +98,11 @@ func (m *MockedResponse) getResponse(rr *receivedRequest) *httpResponse {
 
 			if m.DoNotWrap {
 
-				xmlout, err := mxj.AnyXmlIndent(m.Body, "", "  ")
+				if m.RootTag == "" {
+					m.RootTag = "" + m.action + "Response"
+				}
+
+				xmlout, err := mxj.AnyXmlIndent(m.Body, "", "  ", m.RootTag, "")
 				if err != nil {
 					panic(err)
 				}

@@ -17,8 +17,7 @@ const (
 )
 
 var (
-	awsDomainRegexp = regexp.MustCompile(`amazonaws\.com`)
-	hasPort         = regexp.MustCompile(`:\d+$`)
+	awsDomainRegexp = regexp.MustCompile(`(amazonaws\.com|\.aws)$`)
 	httpsRegexp     = regexp.MustCompile(`^https:\/\/`)
 
 	globalTlsConfig = &tls.Config{
@@ -40,22 +39,15 @@ func (m *mocker) handleHttps(w http.ResponseWriter, r *http.Request) {
 		panic("Cannot hijack connection " + e.Error())
 	}
 
-	hostname := r.URL.Hostname()
+	// hostname := r.URL.Hostname()
 
-	if awsDomainRegexp.MatchString(hostname) {
-		// PROXY HACK
-		// httpError(proxyClient, nil)
-		_, _ = proxyClient.Write([]byte("HTTP/1.0 200 OK\r\n\r\n"))
-		go m.handleAwsRequestHttps(proxyClient, r)
-		return
-	}
+	// if awsDomainRegexp.MatchString(hostname) {
+	_, _ = proxyClient.Write([]byte("HTTP/1.0 200 OK\r\n\r\n"))
+	go m.handleAwsRequestHttps(proxyClient, r)
+	// return
+	// }
 
-	// TODO: add additional url handlers if desired
-
-	// No match, so pass through
-	// m.Logf("AwsMocker HTTPS PASSTHROUGH! %s", hostname)
-	// m.proxyPassthruHttps(proxyClient, r)
-	httpErrorCode(proxyClient, 501)
+	// httpErrorCode(proxyClient, 418)
 
 }
 
@@ -70,7 +62,6 @@ func (m *mocker) handleAwsRequestHttps(proxyClient net.Conn, r *http.Request) {
 	clientTlsReader := bufio.NewReader(rawClientTls)
 	for !isEof(clientTlsReader) {
 		req, err := http.ReadRequest(clientTlsReader)
-		// var ctx = &ProxyCtx{Req: req, Session: atomic.AddInt64(&proxy.sess, 1), Proxy: proxy, UserData: ctx.UserData}
 		if err != nil && !errors.Is(err, io.EOF) {
 			return
 		}
@@ -95,37 +86,3 @@ func (m *mocker) handleAwsRequestHttps(proxyClient net.Conn, r *http.Request) {
 		}
 	}
 }
-
-/*
-func (m *mocker) proxyPassthruHttps(proxyClient net.Conn, r *http.Request) {
-	host := r.URL.Host
-	if !hasPort.MatchString(host) {
-		host += ":80"
-	}
-	targetSiteCon, err := net.DialTimeout("tcp", host, m.timeout)
-	if err != nil {
-		httpError(proxyClient, err)
-		return
-	}
-	m.Logf("Accepting CONNECT to %s", host)
-	_, _ = proxyClient.Write([]byte("HTTP/1.0 200 Connection established\r\n\r\n"))
-
-	targetTCP, targetOK := targetSiteCon.(halfClosable)
-	proxyClientTCP, clientOK := proxyClient.(halfClosable)
-	if targetOK && clientOK {
-		go copyAndClose(targetTCP, proxyClientTCP)
-		go copyAndClose(proxyClientTCP, targetTCP)
-	} else {
-		go func() {
-			var wg sync.WaitGroup
-			wg.Add(2)
-			go copyOrWarn(targetSiteCon, proxyClient, &wg)
-			go copyOrWarn(proxyClient, targetSiteCon, &wg)
-			wg.Wait()
-			proxyClient.Close()
-			targetSiteCon.Close()
-
-		}()
-	}
-}
-*/

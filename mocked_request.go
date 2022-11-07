@@ -1,8 +1,11 @@
 package awsmocker
 
 import (
+	"fmt"
 	"net/url"
 	"regexp"
+	"strings"
+	"sync/atomic"
 
 	"golang.org/x/exp/maps"
 	"golang.org/x/exp/slices"
@@ -47,13 +50,76 @@ type MockedRequest struct {
 	// Is this an instance metadata request?
 	// setting this to true will match against both the IPv4 and IPv6 hostnames
 	IsEc2IMDS bool
+
+	// Stop matching this request after it has been matched X times
+	//
+	// 0 (default) means it will live forever
+	MaxMatchCount int
+
+	// number of times this request has matched
+	matchCount atomic.Int64
 }
 
 func (mr *MockedRequest) prep() {
 
 }
 
+func (m *MockedRequest) incMatchCount() {
+	m.matchCount.Add(1)
+}
+
+// Returns a string to help identify this MockedRequest
+func (m *MockedRequest) Inspect() string {
+	parts := make([]string, 0, 10)
+
+	if m.Strict {
+		parts = append(parts, "STRICT")
+	}
+
+	if m.Service != "" {
+		parts = append(parts, fmt.Sprintf("Service=%s", m.Service))
+	}
+
+	if m.Action != "" {
+		parts = append(parts, fmt.Sprintf("Action=%s", m.Action))
+	}
+
+	if m.IsEc2IMDS {
+		parts = append(parts, fmt.Sprintf("imds=%t", m.IsEc2IMDS))
+	}
+
+	if m.Hostname != "" {
+		parts = append(parts, fmt.Sprintf("Hostname=%s", m.Hostname))
+	}
+
+	if m.Path != "" {
+		parts = append(parts, fmt.Sprintf("Path=%s", m.Path))
+	}
+
+	if m.Method != "" {
+		parts = append(parts, fmt.Sprintf("Method=%s", m.Method))
+	}
+
+	if m.PathRegex != nil {
+		parts = append(parts, fmt.Sprintf("PathRegex=%s", m.PathRegex.String()))
+	}
+
+	if len(m.Params) > 0 {
+		parts = append(parts, fmt.Sprintf("Params=%s", m.Params.Encode()))
+	}
+
+	if m.Body != "" {
+		parts = append(parts, fmt.Sprintf("Body=%s", m.Body))
+	}
+
+	return "MReq<" + strings.Join(parts, " ") + ">"
+}
+
 func (m *MockedRequest) matchRequest(rr *ReceivedRequest) bool {
+
+	if m.MaxMatchCount > 0 && m.matchCount.Load() >= int64(m.MaxMatchCount) {
+		return false
+	}
 
 	if !m.matchRequestLazy(rr) {
 		return false

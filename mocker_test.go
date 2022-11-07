@@ -2,8 +2,8 @@ package awsmocker_test
 
 import (
 	"context"
+	"crypto/tls"
 	"fmt"
-	"io"
 	"net/http"
 	"testing"
 
@@ -114,8 +114,9 @@ func TestDynamicMocker(t *testing.T) {
 		Mocks: []*awsmocker.MockedEndpoint{
 			{
 				Request: &awsmocker.MockedRequest{
-					Service: "events",
-					Action:  "PutRule",
+					Service:       "events",
+					Action:        "PutRule",
+					MaxMatchCount: 1,
 				},
 				Response: &awsmocker.MockedResponse{
 					Body: func(rr *awsmocker.ReceivedRequest) string {
@@ -126,16 +127,79 @@ func TestDynamicMocker(t *testing.T) {
 					},
 				},
 			},
+			{
+				Request: &awsmocker.MockedRequest{
+					Service:       "events",
+					Action:        "PutRule",
+					MaxMatchCount: 1,
+				},
+				Response: &awsmocker.MockedResponse{
+					Body: func(rr *awsmocker.ReceivedRequest) (string, int) {
+						name, _ := jmespath.Search("Name", rr.JsonPayload)
+						return awsmocker.EncodeAsJson(map[string]interface{}{
+							"RuleArn": fmt.Sprintf("arn:aws:events:%s:%s:rule/x%s", rr.Region, awsmocker.DefaultAccountId, name.(string)),
+						}), 200
+					},
+				},
+			},
+			{
+				Request: &awsmocker.MockedRequest{
+					Service:       "events",
+					Action:        "PutRule",
+					MaxMatchCount: 1,
+				},
+				Response: &awsmocker.MockedResponse{
+					Body: func(rr *awsmocker.ReceivedRequest) (string, int, string) {
+						name, _ := jmespath.Search("Name", rr.JsonPayload)
+						return awsmocker.EncodeAsJson(map[string]interface{}{
+							"RuleArn": fmt.Sprintf("arn:aws:events:%s:%s:rule/y%s", rr.Region, awsmocker.DefaultAccountId, name.(string)),
+						}), 200, awsmocker.ContentTypeJSON
+					},
+				},
+			},
+			{
+				Request: &awsmocker.MockedRequest{
+					Service:       "events",
+					Action:        "PutRule",
+					MaxMatchCount: 1,
+				},
+				Response: &awsmocker.MockedResponse{
+					Body: func(rr *awsmocker.ReceivedRequest) (string, int, string, string) {
+						name, _ := jmespath.Search("Name", rr.JsonPayload)
+						return awsmocker.EncodeAsJson(map[string]interface{}{
+							"RuleArn": fmt.Sprintf("arn:aws:events:%s:%s:rule/y%s", rr.Region, awsmocker.DefaultAccountId, name.(string)),
+						}), 200, awsmocker.ContentTypeJSON, "wut"
+					},
+				},
+			},
 		},
 	})
 
 	client := eventbridge.NewFromConfig(getAwsConfig())
 
-	resp, err := client.PutRule(context.TODO(), &eventbridge.PutRuleInput{
-		Name: aws.String("testrule"),
-	})
-	require.NoError(t, err)
-	require.Equal(t, "arn:aws:events:us-east-1:555555555555:rule/testrule", *resp.RuleArn)
+	tables := []struct {
+		name          string
+		expectedArn   string
+		errorContains interface{}
+	}{
+		{"testrule", "arn:aws:events:us-east-1:555555555555:rule/testrule", nil},
+		{"testrule", "arn:aws:events:us-east-1:555555555555:rule/xtestrule", nil},
+		{"testrule", "arn:aws:events:us-east-1:555555555555:rule/ytestrule", nil},
+		{"testrule", "arn:aws:events:us-east-1:555555555555:rule/ztestrule", "InvalidBodyFunc"},
+	}
+
+	for _, table := range tables {
+		resp, err := client.PutRule(context.TODO(), &eventbridge.PutRuleInput{
+			Name: aws.String(table.name),
+		})
+
+		if table.errorContains == nil {
+			require.NoError(t, err)
+			require.Equal(t, table.expectedArn, *resp.RuleArn)
+		} else {
+			require.ErrorContains(t, err, table.errorContains.(string))
+		}
+	}
 }
 
 func TestStartMockServerForTest(t *testing.T) {
@@ -196,12 +260,32 @@ func TestBypassReject(t *testing.T) {
 		DoNotProxy: "example.com",
 	})
 
-	_, err := http.Head("https://example.org/")
+	client := &http.Client{
+		Transport: &http.Transport{
+			TLSClientConfig: &tls.Config{
+				InsecureSkipVerify: true,
+			},
+		},
+	}
+
+	resp, err := client.Head("https://example.org/")
+	require.Equal(t, resp.StatusCode, http.StatusNotImplemented)
 	require.ErrorContains(t, err, "Not Implemented")
 
-	resp, err := http.Head("http://example.org/")
-	data, _ := io.ReadAll(resp.Body)
-	fmt.Println("BODY:", string(data))
+	resp = nil
+
+	resp, err = http.Get("http://example.org/")
+	require.NoError(t, err)
+	defer resp.Body.Close()
+	require.Equal(t, http.StatusNotImplemented, resp.StatusCode)
+}
+
+func TestSendingRegularRequestToProxy(t *testing.T) {
+	info := awsmocker.Start(t, nil)
+
+	resp, err := http.Get(info.ProxyURL + "/testing")
+	require.NoError(t, err)
+	defer resp.Body.Close()
 	require.Equal(t, http.StatusNotImplemented, resp.StatusCode)
 }
 

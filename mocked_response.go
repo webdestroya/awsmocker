@@ -2,7 +2,6 @@ package awsmocker
 
 import (
 	"encoding/xml"
-	"fmt"
 	"net/http"
 	"reflect"
 	"strings"
@@ -14,6 +13,10 @@ const (
 	ContentTypeXML  = "text/xml"
 	ContentTypeJSON = "application/json"
 	ContentTypeText = "text/plain"
+)
+
+var (
+	byteArrayType = reflect.SliceOf(reflect.TypeOf((*byte)(nil)).Elem())
 )
 
 type MockedResponse struct {
@@ -28,14 +31,18 @@ type MockedResponse struct {
 	// a string, struct or map that will be encoded as the response
 	//
 	// Also accepts a function that is of the following signatures:
-	// func(ReceivedRequest) (string) = string payload (with 200 OK, inferred content type)
-	// func(ReceivedRequest) (string, int) = string payload, <int> status code (with inferred content type)
-	// func(ReceivedRequest) (string, int, string) = string payload, <int> status code, content type
+	// func(*ReceivedRequest) (string) = string payload (with 200 OK, inferred content type)
+	// func(*ReceivedRequest) (string, int) = string payload, <int> status code (with inferred content type)
+	// func(*ReceivedRequest) (string, int, string) = string payload, <int> status code, content type
 	Body interface{}
 
 	// Do not wrap the xml response in ACTIONResponse>ACTIONResult
 	DoNotWrap bool
 	RootTag   string
+
+	// If provided, then all other fields are ignored, and the user
+	// is responsible for building an HTTP response themselves
+	Handler MockedRequestHandler
 
 	rawBody string
 
@@ -56,6 +63,13 @@ func (m *MockedResponse) prep() {
 
 func (m *MockedResponse) getResponse(rr *ReceivedRequest) *httpResponse {
 
+	if m.Handler != nil {
+		// user wants to do it all themselves
+		return &httpResponse{
+			forcedHttpResponse: m.Handler(rr),
+		}
+	}
+
 	if m.rawBody != "" && m.ContentType != "" {
 		return &httpResponse{
 			Body:        m.rawBody,
@@ -74,6 +88,16 @@ func (m *MockedResponse) getResponse(rr *ReceivedRequest) *httpResponse {
 
 	switch bodyKind {
 	case reflect.Func:
+
+		switch rBody.Interface().(type) {
+		case func(*ReceivedRequest) string:
+		case func(*ReceivedRequest) (string, int):
+		case func(*ReceivedRequest) (string, int, string):
+			// valid function
+		default:
+			return generateErrorStruct("InvalidBodyFunc", "the function you gave for the body has the wrong signature").getResponse(rr)
+		}
+
 		respRet := rBody.Call([]reflect.Value{reflect.ValueOf(rr)})
 		respBody := respRet[0].String()
 		respStatus := http.StatusOK
@@ -97,7 +121,7 @@ func (m *MockedResponse) getResponse(rr *ReceivedRequest) *httpResponse {
 	case reflect.String:
 
 		m.rawBody = rBody.String()
-		m.ContentType = ContentTypeText
+		// m.ContentType = ContentTypeText
 		if m.ContentType == "" && len(m.rawBody) > 1 {
 			m.ContentType = inferContentType(m.rawBody)
 		}
@@ -131,11 +155,11 @@ func (m *MockedResponse) getResponse(rr *ReceivedRequest) *httpResponse {
 
 				xmlout, err := mxj.AnyXmlIndent(m.Body, "", "  ", m.RootTag, "")
 				if err != nil {
-					panic(err)
+					return generateErrorStruct("BadMockBody", "Could not serialize body to XML: %s", err).getResponse(rr)
 				}
 
 				return &httpResponse{
-					Body:        string(xmlout),
+					bodyRaw:     xmlout,
 					StatusCode:  m.StatusCode,
 					contentType: ContentTypeXML,
 				}
@@ -147,7 +171,7 @@ func (m *MockedResponse) getResponse(rr *ReceivedRequest) *httpResponse {
 
 				xmlout, err := mxj.AnyXmlIndent(wrappedObj, "", "  ", ""+actionName+"Response")
 				if err != nil {
-					panic(err)
+					return generateErrorStruct("BadMockBody", "Could not serialize body to XML: %s", err).getResponse(rr)
 				}
 
 				return &httpResponse{
@@ -166,16 +190,28 @@ func (m *MockedResponse) getResponse(rr *ReceivedRequest) *httpResponse {
 
 				xmlout, err := mxj.AnyXmlIndent(wrappedMap, "", "  ", ""+actionName+"Response")
 				if err != nil {
-					panic(err)
+					return generateErrorStruct("BadMockBody", "Could not serialize body to XML: %s", err).getResponse(rr)
 				}
 
 				return &httpResponse{
-					Body:        string(xmlout),
+					bodyRaw:     xmlout,
 					StatusCode:  m.StatusCode,
 					contentType: ContentTypeXML,
 				}
 			}
+		case bodyKind == reflect.Slice && rBody.Type() == byteArrayType:
+
+			cType := m.ContentType
+			if cType == "" {
+				cType = http.DetectContentType(m.Body.([]byte))
+			}
+
+			return &httpResponse{
+				bodyRaw:     m.Body.([]byte),
+				StatusCode:  m.StatusCode,
+				contentType: cType,
+			}
 		}
 	}
-	panic(fmt.Errorf("Unknown type provided for response Body. Make a string/struct/map/slice was(%t) || %v", m.Body, EncodeAsJson(m.Body)))
+	return generateErrorStruct("BadMockResponse", "Don't know how to encode a kind=%v using content type=%s", bodyKind, m.ContentType).getResponse(rr)
 }

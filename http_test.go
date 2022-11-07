@@ -1,8 +1,6 @@
 package awsmocker_test
 
 import (
-	"fmt"
-	"io"
 	"net/http"
 	"net/url"
 	"os"
@@ -25,9 +23,5 @@ func TestProxyHttp(t *testing.T) {
 	}
 	httpresp, err := client.Get("http://example.com/")
 	require.NoError(t, err)
-
-	data, err := io.ReadAll(httpresp.Body)
-	require.NoError(t, err)
-
-	fmt.Println("HTTP GET RESPONSE: ", string(data))
+	defer httpresp.Body.Close()
 }

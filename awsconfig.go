@@ -1,8 +1,8 @@
 package awsmocker
 
 import (
+	"bytes"
 	"context"
-	"crypto/tls"
 	"net/http"
 	"net/url"
 	"time"
@@ -17,18 +17,19 @@ import (
 // then using the one provided by this method will make testing much easier.
 func (m *mocker) buildAwsConfig() aws.Config {
 
-	httpClient := awshttp.NewBuildableClient().WithTimeout(2 * time.Second).WithTransportOptions(func(t *http.Transport) {
+	httpClient := awshttp.NewBuildableClient().WithTimeout(10 * time.Second).WithTransportOptions(func(t *http.Transport) {
 		proxyUrl, _ := url.Parse(m.httpServer.URL)
 		t.Proxy = http.ProxyURL(proxyUrl)
 
 		// remove the need for CA bundle?
-		t.TLSClientConfig = &tls.Config{InsecureSkipVerify: true}
+		// t.TLSClientConfig = &tls.Config{InsecureSkipVerify: true}
 	})
 
 	cfg, err := config.LoadDefaultConfig(context.TODO(),
 		config.WithCredentialsProvider(credentials.NewStaticCredentialsProvider("XXfakekey", "XXfakesecret", "xxtoken")),
-		config.WithDefaultRegion("us-east-1"),
+		config.WithDefaultRegion(DefaultRegion),
 		config.WithHTTPClient(httpClient),
+		config.WithCustomCABundle(bytes.NewReader(caCert)),
 		config.WithRetryer(func() aws.Retryer {
 			return aws.NopRetryer{}
 		}),

@@ -56,21 +56,21 @@ func (m *mocker) Start() {
 
 	m.originalEnvVars = os.Environ()
 
-	// fmt.Println("ENVVARS", m.originalEnvVars)
-
 	m.t.Cleanup(m.Shutdown)
 
 	for i := range m.mocks {
 		m.mocks[i].prep()
 	}
 
-	caBundlePath := path.Join(m.t.TempDir(), "awsmockcabundle.pem")
-	err := writeCABundle(caBundlePath)
-	if err != nil {
-		m.Warnf("Failed to write CA Bundle: %s", err)
-		m.t.FailNow()
+	// if we are using aws config, then we don't need this
+	if !m.usingAwsConfig {
+		caBundlePath := path.Join(m.t.TempDir(), "awsmockcabundle.pem")
+		err := writeCABundle(caBundlePath)
+		if err != nil {
+			m.t.Errorf("Failed to write CA Bundle: %s", err)
+		}
+		m.Setenv(envAwsCaBundle, caBundlePath)
 	}
-	m.Setenv(envAwsCaBundle, caBundlePath)
 
 	ts := httptest.NewServer(m)
 	m.httpServer = ts
@@ -127,7 +127,7 @@ func (m *mocker) handleRequest(req *http.Request) (*http.Request, *http.Response
 
 	if recvReq.invalid {
 		recvReq.DebugDump()
-		m.t.FailNow()
+		m.t.Errorf("You provided an invalid request")
 		return req, generateErrorStruct("AccessDenied", "You provided a bad or invalid request").getResponse(recvReq).toHttpResponse(req)
 	}
 
@@ -137,14 +137,18 @@ func (m *mocker) handleRequest(req *http.Request) (*http.Request, *http.Response
 
 	for _, mockEndpoint := range m.mocks {
 		if mockEndpoint.matchRequest(recvReq) {
+			// increment it's matcher count
+			mockEndpoint.Request.incMatchCount()
+
+			// build the response
 			return req, mockEndpoint.getResponse(recvReq).toHttpResponse(req)
 		}
 	}
 
-	m.Warnf("WARN: No matching mocks found for this request!")
-	if !m.debugTraffic {
-		recvReq.DebugDump()
-	}
+	// m.Warnf("No matching mocks found for this request!")
+	// if !m.debugTraffic {
+	// 	recvReq.DebugDump()
+	// }
 
 	return req, generateErrorStruct("AccessDenied", "No matching request mock was found for this").getResponse(recvReq).toHttpResponse(req)
 }
@@ -167,6 +171,11 @@ func (m *mocker) ServeHTTP(w http.ResponseWriter, r *http.Request) {
 
 	if r.Method == "CONNECT" {
 		m.handleHttps(w, r)
+		return
+	}
+
+	if !r.URL.IsAbs() {
+		handleNonProxyRequest.ServeHTTP(w, r)
 		return
 	}
 

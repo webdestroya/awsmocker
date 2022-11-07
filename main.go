@@ -7,7 +7,17 @@ import (
 	"github.com/aws/aws-sdk-go-v2/aws"
 )
 
-func Start(t TestingT, options *MockerOptions) *aws.Config {
+// Returned when you start the server, provides you some information if needed
+type MockerInfo struct {
+	// URL of the proxy server
+	ProxyURL string
+
+	// Aws configuration to use
+	// This is only provided if you gave ReturnAwsConfig in the options
+	AwsConfig *aws.Config
+}
+
+func Start(t TestingT, options *MockerOptions) *MockerInfo {
 
 	if h, ok := t.(tHelper); ok {
 		h.Helper()
@@ -59,10 +69,14 @@ func Start(t TestingT, options *MockerOptions) *aws.Config {
 	}
 	server.Start()
 
-	if options.ReturnAwsConfig {
-		cfg := server.buildAwsConfig()
-		return &cfg
+	info := &MockerInfo{
+		ProxyURL: server.httpServer.URL,
 	}
 
-	return nil
+	if options.ReturnAwsConfig {
+		cfg := server.buildAwsConfig()
+		info.AwsConfig = &cfg
+	}
+
+	return info
 }

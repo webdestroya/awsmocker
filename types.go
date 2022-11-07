@@ -2,6 +2,7 @@ package awsmocker
 
 import (
 	"net"
+	"net/http"
 )
 
 const DefaultAccountId = "555555555555"
@@ -11,9 +12,14 @@ type TestingT interface {
 	Setenv(key, value string)
 	TempDir() string
 	Cleanup(func())
-	FailNow()
-	Log(args ...any)
+	Fail()
+	Errorf(format string, args ...any)
 	Logf(format string, args ...any)
+
+	// These must be called from the test goroutine (which we will not be in)
+	// so do not use them
+	// FailNow()
+	// Fatalf(format string, args ...any)
 }
 
 type tHelper interface {
@@ -37,3 +43,5 @@ const (
 	ResponseEncodingXML
 	ResponseEncodingText
 )
+
+type MockedRequestHandler = func(*ReceivedRequest) *http.Response

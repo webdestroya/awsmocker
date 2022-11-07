@@ -1,32 +1,24 @@
 package awsmocker
 
 import (
+	"io"
 	"net/http"
 )
 
 func (m *mocker) handleHttp(w http.ResponseWriter, r *http.Request) {
-	// hostname := r.URL.Hostname()
 
-	// if hostname == imdsHost4 || hostname == imdsHost6 {
+	r, resp := m.handleRequest(r)
 
-	// 	m.handleAwsRequestHttp(w, r)
-	// 	return
-	// }
+	origBody := resp.Body
+	defer origBody.Close()
 
-	// // m.proxyPassthruHttp(nil, nil)
-
-	// w.WriteHeader(501)
-	_, resp := m.handleRequest(r)
-
-	resp.Write(w)
+	w.WriteHeader(resp.StatusCode)
+	_, _ = io.Copy(w, resp.Body)
+	if err := resp.Body.Close(); err != nil {
+		m.Warnf("Can't close response body %v", err)
+	}
 }
 
-func (m *mocker) handleAwsRequestHttp(w http.ResponseWriter, r *http.Request) {
-	// path := r.URL.Path
-
-	// path = "/" + strings.TrimPrefix(path, "/")
-
-	_, resp := m.handleRequest(r)
-
-	resp.Write(w)
-}
+var handleNonProxyRequest = http.HandlerFunc(func(w http.ResponseWriter, r *http.Request) {
+	http.Error(w, "AWSMocker is meant to be used as a proxy server. Don't send requests directly to it.", http.StatusNotImplemented)
+})

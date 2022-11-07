@@ -45,23 +45,22 @@ func isEof(r *bufio.Reader) bool {
 	return errors.Is(err, io.EOF)
 }
 
-/*
-func copyOrWarn(dst io.Writer, src io.Reader, wg *sync.WaitGroup) {
-	if _, err := io.Copy(dst, src); err != nil {
-		panic(fmt.Errorf("Error copying to client: %w", err))
-	}
-	wg.Done()
-}
-
-func copyAndClose(dst, src halfClosable) {
-	if _, err := io.Copy(dst, src); err != nil {
-		panic(fmt.Errorf("Error copying to client: %w", err))
+// whether this is an AWS hostname that should be handled
+func isAwsHostname(hostname string) bool {
+	if strings.HasSuffix(hostname, "amazonaws.com") {
+		return true
 	}
 
-	_ = dst.CloseWrite()
-	_ = src.CloseRead()
+	if strings.HasSuffix(hostname, "aws") {
+		return true
+	}
+
+	if strings.HasSuffix(hostname, "amazonaws.com.cn") {
+		return true
+	}
+
+	return false
 }
-*/
 
 func httpError(w io.WriteCloser, srcErr error) {
 	if _, err := io.WriteString(w, "HTTP/1.1 502 Bad Gateway\r\n\r\n"); err != nil {

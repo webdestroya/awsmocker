@@ -90,6 +90,10 @@ func newReceivedRequest(req *http.Request) *ReceivedRequest {
 		recvreq.Action = req.PostForm.Get("Action")
 	}
 
+	if recvreq.AssumedResponseType == ContentTypeText && recvreq.Action != "" && recvreq.Service != "" && reqContentType == "application/x-www-form-urlencoded" {
+		recvreq.AssumedResponseType = ContentTypeXML
+	}
+
 	// if recvreq.Action == "" {
 	// 	log.Println("WARN: Received a request with no action????")
 	// 	recvreq.invalid = true

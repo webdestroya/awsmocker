@@ -32,6 +32,16 @@ issues:
     - text: "G101" # G101: potential hard coded creds
       linters:
         - gosec
+    
+    # yea, it's a test proxy. we're way beyond security
+    - text: "G402" # TLS InsecureSkipVerify set true
+      linters:
+        - gosec
+
+    # it's used for a serial number
+    - text: "G404" # G404: Use of weak random number generator (math/rand instead of crypto/rand)
+      linters:
+        - gosec
 
 
 # output configuration options

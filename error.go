@@ -2,6 +2,7 @@ package awsmocker
 
 import (
 	"encoding/xml"
+	"fmt"
 )
 
 // aws/protocol/restjson/decoder_util.go
@@ -16,22 +17,26 @@ type errorResponse struct {
 	RequestId string `xml:"RequestId" json:"-"`
 }
 
-func (e *errorResponse) getResponse(rr *receivedRequest) *httpResponse {
-	switch rr.assumeResponseType {
+func (e *errorResponse) getResponse(rr *ReceivedRequest) *httpResponse {
+	switch rr.AssumedResponseType {
 	case ContentTypeJSON:
 		return &httpResponse{
 			contentType: ContentTypeJSON,
-			Body:        encodeAsJson(e),
-			StatusCode:  400,
+			Body:        EncodeAsJson(e),
+			StatusCode:  501,
 		}
 	case ContentTypeXML:
 		return &httpResponse{
 			contentType: ContentTypeXML,
 			Body:        encodeAsXml(e),
-			StatusCode:  400,
+			StatusCode:  501,
 		}
 	default:
-		panic("Unknown Response Type???")
+		return &httpResponse{
+			contentType: ContentTypeText,
+			Body:        fmt.Sprintf("ERROR! %s: %s", e.Code, e.Message),
+			StatusCode:  501,
+		}
 	}
 }
 

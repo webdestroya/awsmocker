@@ -1,12 +1,19 @@
-# AWS Mocker
+# AWS Mocker for Go
+
+[![godoc](https://img.shields.io/badge/godoc-reference-blue.svg?style=flat)](https://godoc.org/github.com/webdestroya/awsmocker)
+[![License](https://img.shields.io/badge/license-MIT-blue.svg)](https://github.com/webdestroya/awsmocker/blob/main/LICENSE)
+[![Go Report Card](https://goreportcard.com/badge/github.com/webdestroya/awsmocker)](https://goreportcard.com/report/github.com/webdestroya/awsmocker)
 
 Easily create a proxy to allow easy testing of AWS API calls.
 
-**Warning! This is considered alpha quality right now. It might not work for all of AWS's APIs.**
+**:warning: This is considered alpha quality right now. It might not work for all of AWS's APIs.**
 
 If you find problems, please create an Issue or make a PR.
 
-
+## Installation
+```shell
+go get -u github.com/webdestroya/awsmocker
+```
 
 ## Usage
 
@@ -66,6 +73,37 @@ func TestSomethingThatCallsAws(t *testing.T) {
 	// ... do the rest of your test here
 }
 ```
+
+## Defining Mocks
+
+### Dynamic Response
+```go
+func Mock_Events_PutRule_Generic() *awsmocker.MockedEndpoint {
+	return &awsmocker.MockedEndpoint{
+		Request: &awsmocker.MockedRequest{
+			Service: "events",
+			Action:  "PutRule",
+		},
+		Response: &awsmocker.MockedResponse{
+			Body: func(rr *awsmocker.ReceivedRequest) string {
+
+				name, _ := jmespath.Search("Name", rr.JsonPayload)
+
+				return util.Must(util.Jsonify(map[string]interface{}{
+					"RuleArn": fmt.Sprintf("arn:aws:events:%s:%s:rule/%s", rr.Region, awsmocker.DefaultAccountId, name.(string)),
+				}))
+			},
+		},
+	}
+}
+```
+
+## Viewing Requests/Responses
+
+To see the request/response traffic, you can use either of the following:
+
+* Set `awsmocker.GlobalDebugMode = true` in your tests
+* Use the `AWSMOCKER_DEBUG=true` environment variable
 
 ## Assumptions/Limitations
 * The first matching mock is returned.

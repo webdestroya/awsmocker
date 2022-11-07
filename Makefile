@@ -23,7 +23,7 @@ lint:
 		echo "golangci-lint not found, please run: make lint-install"; \
 		exit 1; \
 	}
-	golangci-lint run
+	@golangci-lint run && echo "All Good!"
 
 .PHONY: test-release
 test-release:
@@ -32,3 +32,13 @@ test-release:
 .PHONY: test
 test:
 	go test -timeout 180s -v ./...
+
+.PHONY: test-debug
+test-debug:
+	AWSMOCKER_DEBUG=true go test -timeout 180s -v ./...
+
+.PHONY: coverage
+coverage:
+	@mkdir -p coverage
+	@go test . -cover -coverprofile=coverage/c.out -covermode=count
+	@go tool cover -html=coverage/c.out -o coverage/index.html

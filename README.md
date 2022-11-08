@@ -19,9 +19,7 @@ go get -u github.com/webdestroya/awsmocker
 
 ```go
 func TestSomethingThatCallsAws(t *testing.T) {
-	closeMocker, _, _ := awsmocker.StartMockServer(&awsmocker.MockerOptions{
-		T: t,
-
+	awsmocker.Start(t, &awsmocker.MockerOptions{
 		// List out the mocks
 		Mocks: []*awsmocker.MockedEndpoint{
 			// Simple construction of a response
@@ -40,10 +38,10 @@ func TestSomethingThatCallsAws(t *testing.T) {
 				},
 				// provide the response to give
 				Response: &awsmocker.MockedResponse{
-					Body: ecs.DescribeServicesOutput{
-						Services: []ecstypes.Service{
+					Body: map[string]interface{}{
+						"services": []map[string]interface{}{
 							{
-								ServiceName: aws.String("someservice"),
+								"serviceName": "someservice",
 							},
 						},
 					},
@@ -51,12 +49,8 @@ func TestSomethingThatCallsAws(t *testing.T) {
 			},
 		},
 	})
-	defer closeMocker()
 
-	cfg, _ := config.LoadDefaultConfig(context.TODO(), func(lo *config.LoadOptions) error {
-		lo.Region = "us-east-1"
-		return nil
-	})
+	cfg, _ := config.LoadDefaultConfig(context.TODO())
 
 	stsClient := sts.NewFromConfig(cfg)
 

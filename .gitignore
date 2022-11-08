@@ -1,2 +1,4 @@
 /internal/thing
 /dist
+.DS_Store
+/coverage/

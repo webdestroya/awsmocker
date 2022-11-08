@@ -13,11 +13,11 @@ func (m *MockedEndpoint) prep() {
 
 }
 
-func (m *MockedEndpoint) matchRequest(rr *receivedRequest) bool {
+func (m *MockedEndpoint) matchRequest(rr *ReceivedRequest) bool {
 	return m.Request.matchRequest(rr)
 }
 
-func (m *MockedEndpoint) getResponse(rr *receivedRequest) *httpResponse {
+func (m *MockedEndpoint) getResponse(rr *ReceivedRequest) *httpResponse {
 	return m.Response.getResponse(rr)
 }
 

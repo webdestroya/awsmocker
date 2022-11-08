@@ -13,17 +13,43 @@ type httpResponse struct {
 	StatusCode int
 	Body       string
 
+	bodyRaw []byte
+
 	contentType string
 
 	extraHeaders map[string]string
+
+	forcedHttpResponse *http.Response
+
+	// isError bool
 }
 
+/*
+func (hr *httpResponse) notifyIfError(m *mocker) *httpResponse {
+	if hr.isError {
+		m.t.Errorf("AWSMocker errored during the test")
+	}
+	return hr
+}
+*/
+
 func (hr *httpResponse) toHttpResponse(req *http.Request) *http.Response {
+
+	if hr.forcedHttpResponse != nil {
+		return hr.forcedHttpResponse
+	}
+
 	resp := &http.Response{
+		ProtoMajor:       req.ProtoMajor,
+		ProtoMinor:       req.ProtoMinor,
 		Request:          req,
 		TransferEncoding: req.TransferEncoding,
 		Header:           hr.Header,
 		StatusCode:       hr.StatusCode,
+	}
+
+	if resp.ProtoMajor == 0 {
+		resp.ProtoMajor = 1
 	}
 
 	if resp.Header == nil {
@@ -31,6 +57,7 @@ func (hr *httpResponse) toHttpResponse(req *http.Request) *http.Response {
 	}
 
 	resp.Header.Add("Content-Type", hr.contentType)
+	resp.Header.Add("Server", "AWSMocker")
 
 	if hr.extraHeaders != nil && len(hr.extraHeaders) > 0 {
 		for k, v := range hr.extraHeaders {
@@ -47,13 +74,20 @@ func (hr *httpResponse) toHttpResponse(req *http.Request) *http.Response {
 	}
 
 	resp.Status = http.StatusText(resp.StatusCode)
-	buf := bytes.NewBufferString(hr.Body)
+
+	var buf *bytes.Buffer
+	if len(hr.bodyRaw) > 0 {
+		buf = bytes.NewBuffer(hr.bodyRaw)
+	} else {
+		buf = bytes.NewBufferString(hr.Body)
+	}
+
 	resp.ContentLength = int64(buf.Len())
 	resp.Body = io.NopCloser(buf)
 
 	if GlobalDebugMode {
 		fmt.Println("MOCK RESPONSE: -----------------------------")
-		fmt.Printf("HTTP/1.1 %d %s\n", hr.StatusCode, resp.Status)
+		fmt.Printf("HTTP/%d.%d %d %s\n", resp.ProtoMajor, resp.ProtoMinor, hr.StatusCode, resp.Status)
 		for k, vlist := range resp.Header {
 			for _, v := range vlist {
 				fmt.Printf("%s: %s\n", k, v)

@@ -4,7 +4,6 @@ import (
 	"crypto/tls"
 	"crypto/x509"
 	_ "embed"
-	"fmt"
 	"os"
 )
 
@@ -41,8 +40,6 @@ func CACert() *x509.Certificate {
 	return caKeyPair.Leaf
 }
 
-func writeCABundle(filePath string) {
-	if err := os.WriteFile(filePath, caCert, 0o600); err != nil {
-		panic(fmt.Errorf("failed to write CA bundle: %w", err))
-	}
+func writeCABundle(filePath string) error {
+	return os.WriteFile(filePath, caCert, 0o600)
 }

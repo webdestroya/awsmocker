@@ -13,5 +13,4 @@ func TestCheckCertificateExpiry(t *testing.T) {
 	if cert.NotAfter.Before(time.Now().AddDate(3, 0, 0)) {
 		t.Fatal("CA Certificate expires within 3 years. Should be regenerated")
 	}
-
 }

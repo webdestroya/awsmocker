@@ -1,33 +1,41 @@
 package awsmocker
 
 import (
-	"testing"
+	"net"
+	"net/http"
 )
 
-const DefaultAccountId = "555555555555"
+const (
+	DefaultAccountId = "555555555555"
+	DefaultRegion    = "us-east-1"
+	// DefaultInstanceId = "i-000deadbeef"
+)
 
-type MockerOptions struct {
-	// used to get the TempDir value
-	T *testing.T
+type TestingT interface {
+	Setenv(key, value string)
+	TempDir() string
+	Cleanup(func())
+	Fail()
+	Errorf(format string, args ...any)
+	Logf(format string, args ...any)
 
-	// provide a path to a temporary directory used to write the CA Bundle
-	TempDir string
-
-	// dump request/responses to the log
-	Verbose bool
-
-	// if true, then env vars for various aws credentials will not be set.
-	// This is dangerous, because if the proxy were to fail, then your requests may actually
-	// execute on AWS with real credentials.
-	//
-	DoNotOverrideCreds bool
-
-	// if this is true, then default mocks for GetCallerIdentity and role assumptions will not be provided
-	SkipDefaultMocks bool
-
-	// The mocks that will be responded to
-	Mocks []*MockedEndpoint
+	// These must be called from the test goroutine (which we will not be in)
+	// so do not use them
+	// FailNow()
+	// Fatalf(format string, args ...any)
 }
+
+type tHelper interface {
+	Helper()
+}
+
+type halfClosable interface {
+	net.Conn
+	CloseWrite() error
+	CloseRead() error
+}
+
+var _ halfClosable = (*net.TCPConn)(nil)
 
 type ResponseEncoding int
 
@@ -38,3 +46,5 @@ const (
 	ResponseEncodingXML
 	ResponseEncodingText
 )
+
+type MockedRequestHandler = func(*ReceivedRequest) *http.Response

@@ -21,15 +21,17 @@ type httpResponse struct {
 
 	forcedHttpResponse *http.Response
 
-	isError bool
+	// isError bool
 }
 
+/*
 func (hr *httpResponse) notifyIfError(m *mocker) *httpResponse {
 	if hr.isError {
 		m.t.Errorf("AWSMocker errored during the test")
 	}
 	return hr
 }
+*/
 
 func (hr *httpResponse) toHttpResponse(req *http.Request) *http.Response {
 

@@ -16,6 +16,7 @@ import (
 	"github.com/jmespath/go-jmespath"
 	"github.com/stretchr/testify/require"
 	"github.com/webdestroya/awsmocker"
+	"github.com/webdestroya/awsmocker/internal/testutil"
 )
 
 func TestEcsDescribeServices(t *testing.T) {
@@ -40,7 +41,7 @@ func TestEcsDescribeServices(t *testing.T) {
 		},
 	})
 
-	client := ecs.NewFromConfig(getAwsConfig())
+	client := ecs.NewFromConfig(testutil.GetAwsConfig())
 
 	resp, err := client.DescribeServices(context.TODO(), &ecs.DescribeServicesInput{
 		Services: []string{"someservice"},
@@ -73,7 +74,7 @@ func TestStsGetCallerIdentity_WithObj(t *testing.T) {
 		},
 	})
 
-	stsClient := sts.NewFromConfig(getAwsConfig())
+	stsClient := sts.NewFromConfig(testutil.GetAwsConfig())
 
 	resp, err := stsClient.GetCallerIdentity(context.TODO(), nil)
 	require.NoError(t, err)
@@ -102,7 +103,7 @@ func TestStsGetCallerIdentity_WithMap(t *testing.T) {
 			},
 		},
 	})
-	stsClient := sts.NewFromConfig(getAwsConfig())
+	stsClient := sts.NewFromConfig(testutil.GetAwsConfig())
 
 	resp, err := stsClient.GetCallerIdentity(context.TODO(), nil)
 	require.NoError(t, err)
@@ -175,7 +176,7 @@ func TestDynamicMocker(t *testing.T) {
 		},
 	})
 
-	client := eventbridge.NewFromConfig(getAwsConfig())
+	client := eventbridge.NewFromConfig(testutil.GetAwsConfig())
 
 	tables := []struct {
 		name          string
@@ -221,7 +222,7 @@ func TestStartMockServerForTest(t *testing.T) {
 	// start the test mocker server
 	awsmocker.Start(t, &awsmocker.MockerOptions{})
 
-	stsClient := sts.NewFromConfig(getAwsConfig())
+	stsClient := sts.NewFromConfig(testutil.GetAwsConfig())
 
 	resp, err := stsClient.GetCallerIdentity(context.TODO(), nil)
 	require.NoError(t, err)
@@ -231,7 +232,7 @@ func TestStartMockServerForTest(t *testing.T) {
 func TestDefaultMocks(t *testing.T) {
 	awsmocker.Start(t, nil)
 
-	stsClient := sts.NewFromConfig(getAwsConfig())
+	stsClient := sts.NewFromConfig(testutil.GetAwsConfig())
 
 	resp, err := stsClient.GetCallerIdentity(context.TODO(), nil)
 	require.NoError(t, err)
@@ -247,7 +248,7 @@ func TestBypass(t *testing.T) {
 	require.NoError(t, err)
 	require.Equal(t, http.StatusOK, httpresp.StatusCode)
 
-	stsClient := sts.NewFromConfig(getAwsConfig())
+	stsClient := sts.NewFromConfig(testutil.GetAwsConfig())
 
 	resp, err := stsClient.GetCallerIdentity(context.TODO(), nil)
 	require.NoError(t, err)
@@ -262,6 +263,7 @@ func TestBypassReject(t *testing.T) {
 
 	client := &http.Client{
 		Transport: &http.Transport{
+			Proxy: http.ProxyFromEnvironment,
 			TLSClientConfig: &tls.Config{
 				InsecureSkipVerify: true,
 			},
@@ -269,8 +271,11 @@ func TestBypassReject(t *testing.T) {
 	}
 
 	resp, err := client.Head("https://example.org/")
-	require.Equal(t, resp.StatusCode, http.StatusNotImplemented)
-	require.ErrorContains(t, err, "Not Implemented")
+	require.NoError(t, err)
+	require.Equal(t, "webdestroya", resp.TLS.PeerCertificates[0].Subject.Organization[0])
+	testutil.PrintHttpResponse(t, resp)
+	require.Equal(t, http.StatusNotImplemented, resp.StatusCode)
+	// require.ErrorContains(t, err, "Not Implemented")
 
 	resp = nil
 
@@ -287,19 +292,4 @@ func TestSendingRegularRequestToProxy(t *testing.T) {
 	require.NoError(t, err)
 	defer resp.Body.Close()
 	require.Equal(t, http.StatusNotImplemented, resp.StatusCode)
-}
-
-func getAwsConfig() aws.Config {
-	cfg, err := config.LoadDefaultConfig(context.TODO(),
-		// add creds just in case something happens
-		config.WithCredentialsProvider(credentials.NewStaticCredentialsProvider("XXfakekey", "XXfakesecret", "xxtoken")),
-		config.WithRegion("us-east-1"),
-		config.WithRetryer(func() aws.Retryer {
-			return aws.NopRetryer{}
-		}),
-	)
-	if err != nil {
-		panic(err)
-	}
-	return cfg
 }

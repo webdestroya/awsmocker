@@ -6,24 +6,25 @@ import (
 	"net/http/httptest"
 	"os"
 	"path"
-	"strings"
 	"time"
 )
 
 const (
-	envHttpProxy  = "HTTP_PROXY"
-	envHttpsProxy = "HTTPS_PROXY"
-
 	envAwsCaBundle       = "AWS_CA_BUNDLE"
 	envAwsAccessKey      = "AWS_ACCESS_KEY_ID"
 	envAwsSecretKey      = "AWS_SECRET_ACCESS_KEY"
 	envAwsSessionToken   = "AWS_SESSION_TOKEN"
 	envAwsEc2MetaDisable = "AWS_EC2_METADATA_DISABLED"
 	envAwsContCredUri    = "AWS_CONTAINER_CREDENTIALS_FULL_URI"
+	envAwsContCredRelUri = "AWS_CONTAINER_CREDENTIALS_RELATIVE_URI"
 	envAwsContAuthToken  = "AWS_CONTAINER_AUTHORIZATION_TOKEN"
 	envAwsConfigFile     = "AWS_CONFIG_FILE"
 	envAwsSharedCredFile = "AWS_SHARED_CREDENTIALS_FILE"
+	envAwsWebIdentTFile  = "AWS_WEB_IDENTITY_TOKEN_FILE"
 	envAwsDefaultRegion  = "AWS_DEFAULT_REGION"
+
+	// AWS_EC2_METADATA_SERVICE_ENDPOINT_MODE
+	// AWS_EC2_METADATA_SERVICE_ENDPOINT
 )
 
 type mocker struct {
@@ -37,24 +38,66 @@ type mocker struct {
 	usingAwsConfig     bool
 	doNotOverrideCreds bool
 
-	originalEnvVars []string
+	// originalEnvVars []string
+
+	originalEnv map[string]*string
 
 	mocks []*MockedEndpoint
 }
 
-func (m *mocker) Setenv(k, v string) {
-	if v == "" {
-		_ = os.Unsetenv(k)
+func (m *mocker) init() {
+	m.originalEnv = make(map[string]*string, 10)
+}
+
+// Overrides an environment variable and then adds it to the stack to undo later
+func (m *mocker) setEnv(k string, v interface{}) {
+	val, ok := os.LookupEnv(k)
+	if ok {
+		m.originalEnv[k] = &val
 	} else {
-		_ = os.Setenv(k, v)
+		m.originalEnv[k] = nil
+	}
+
+	switch nval := v.(type) {
+	case string:
+		err := os.Setenv(k, nval)
+		if err != nil {
+			m.t.Errorf("Unable to set env var '%s': %s", k, err)
+		}
+	case nil:
+		err := os.Unsetenv(k)
+		if err != nil {
+			m.t.Errorf("Unable to unset env var '%s': %s", k, err)
+		}
+	default:
+		panic("WRONG ENV VAR VALUE TYPE: must be nil or a string")
 	}
 }
+
+func (m *mocker) revertEnv() {
+	for k, v := range m.originalEnv {
+		if v == nil {
+			_ = os.Unsetenv(k)
+		} else {
+			_ = os.Setenv(k, *v)
+		}
+	}
+}
+
+// func (m *mocker) Setenv(k, v string) {
+// 	if v == "" {
+// 		_ = os.Unsetenv(k)
+// 	} else {
+// 		_ = os.Setenv(k, v)
+// 	}
+// }
 
 func (m *mocker) Start() {
 	// reset Go's proxy cache
 	resetProxyConfig()
 
-	m.originalEnvVars = os.Environ()
+	m.init()
+	// m.originalEnvVars = os.Environ()
 
 	m.t.Cleanup(m.Shutdown)
 
@@ -69,26 +112,26 @@ func (m *mocker) Start() {
 		if err != nil {
 			m.t.Errorf("Failed to write CA Bundle: %s", err)
 		}
-		m.Setenv(envAwsCaBundle, caBundlePath)
+		m.setEnv(envAwsCaBundle, caBundlePath)
 	}
 
 	ts := httptest.NewServer(m)
 	m.httpServer = ts
 
-	m.Setenv("HTTP_PROXY", ts.URL)
-	m.Setenv("http_proxy", ts.URL)
-	m.Setenv("HTTPS_PROXY", ts.URL)
-	m.Setenv("https_proxy", ts.URL)
+	m.setEnv("HTTP_PROXY", ts.URL)
+	m.setEnv("http_proxy", ts.URL)
+	m.setEnv("HTTPS_PROXY", ts.URL)
+	m.setEnv("https_proxy", ts.URL)
 
-	m.Setenv(envAwsEc2MetaDisable, "true")
-	m.Setenv(envAwsDefaultRegion, DefaultRegion)
+	// m.setEnv(envAwsEc2MetaDisable, "true")
+	m.setEnv(envAwsDefaultRegion, DefaultRegion)
 
 	if !m.doNotOverrideCreds {
-		m.Setenv(envAwsAccessKey, "fakekey")
-		m.Setenv(envAwsSecretKey, "fakesecret")
-		m.Setenv(envAwsSessionToken, "faketoken")
-		m.Setenv(envAwsConfigFile, "fakeconffile")
-		m.Setenv(envAwsSharedCredFile, "fakesharedfile")
+		m.setEnv(envAwsAccessKey, "fakekey")
+		m.setEnv(envAwsSecretKey, "fakesecret")
+		m.setEnv(envAwsSessionToken, "faketoken")
+		m.setEnv(envAwsConfigFile, "fakeconffile")
+		m.setEnv(envAwsSharedCredFile, "fakesharedfile")
 	}
 
 }
@@ -96,11 +139,12 @@ func (m *mocker) Start() {
 func (m *mocker) Shutdown() {
 	m.httpServer.Close()
 
-	os.Clearenv()
-	for _, e := range m.originalEnvVars {
-		pair := strings.SplitN(e, "=", 2)
-		_ = os.Setenv(pair[0], pair[1])
-	}
+	// os.Clearenv()
+	// for _, e := range m.originalEnvVars {
+	// 	pair := strings.SplitN(e, "=", 2)
+	// 	_ = os.Setenv(pair[0], pair[1])
+	// }
+	m.revertEnv()
 
 	// reset Go's proxy cache
 	if !m.usingAwsConfig {

@@ -35,6 +35,9 @@ type MockerOptions struct {
 	// add the hostnames used to this.
 	DoNotProxy string
 
+	// Add mocks for the EC2 Instance Metadata Service
+	MockEc2Metadata bool
+
 	// By default, receiving an unmatched request will cause the test to be marked as failed
 	// you can pass true to this if you do not want to fail your test when the mocker receives an
 	// unmatched request

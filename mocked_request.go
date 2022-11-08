@@ -51,6 +51,10 @@ type MockedRequest struct {
 	// setting this to true will match against both the IPv4 and IPv6 hostnames
 	IsEc2IMDS bool
 
+	// Write a custom matcher function that will be used to match a request.
+	// this runs after checking the other fields, so you can use those as filters.
+	Matcher func(*ReceivedRequest) bool
+
 	// Stop matching this request after it has been matched X times
 	//
 	// 0 (default) means it will live forever
@@ -159,6 +163,10 @@ func (m *MockedRequest) matchRequestLazy(rr *ReceivedRequest) bool {
 	}
 
 	if m.PathRegex != nil && !m.PathRegex.MatchString(rr.Path) {
+		return false
+	}
+
+	if m.Matcher != nil && !m.Matcher(rr) {
 		return false
 	}
 

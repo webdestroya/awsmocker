@@ -5,8 +5,11 @@ import (
 	"net/http"
 )
 
-const DefaultAccountId = "555555555555"
-const DefaultRegion = "us-east-1"
+const (
+	DefaultAccountId = "555555555555"
+	DefaultRegion    = "us-east-1"
+	// DefaultInstanceId = "i-000deadbeef"
+)
 
 type TestingT interface {
 	Setenv(key, value string)

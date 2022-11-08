@@ -17,8 +17,7 @@ const (
 )
 
 var (
-	awsDomainRegexp = regexp.MustCompile(`(amazonaws\.com|\.aws)$`)
-	httpsRegexp     = regexp.MustCompile(`^https:\/\/`)
+	httpsRegexp = regexp.MustCompile(`^https:\/\/`)
 
 	globalTlsConfig = &tls.Config{
 		InsecureSkipVerify: true,
@@ -39,15 +38,11 @@ func (m *mocker) handleHttps(w http.ResponseWriter, r *http.Request) {
 		panic("Cannot hijack connection " + e.Error())
 	}
 
-	// hostname := r.URL.Hostname()
-
-	// if awsDomainRegexp.MatchString(hostname) {
+	// respond with success to acknowledge the proxy request
 	_, _ = proxyClient.Write([]byte("HTTP/1.0 200 OK\r\n\r\n"))
-	go m.handleAwsRequestHttps(proxyClient, r)
-	// return
-	// }
 
-	// httpErrorCode(proxyClient, 418)
+	// handle the request
+	go m.handleAwsRequestHttps(proxyClient, r)
 
 }
 
@@ -76,8 +71,10 @@ func (m *mocker) handleAwsRequestHttps(proxyClient net.Conn, r *http.Request) {
 		}
 
 		_, resp := m.handleRequest(req)
+		origBody := resp.Body
+		defer origBody.Close()
 
-		defer resp.Body.Close()
+		// defer resp.Body.Close()
 
 		resp.Header.Set("Connection", "close")
 

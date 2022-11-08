@@ -5,11 +5,11 @@ import (
 	"encoding/json"
 	"encoding/xml"
 	"errors"
-	"fmt"
 	"io"
-	"net/http"
 	"strings"
 )
+
+// var awsDomainRegexp = regexp.MustCompile(`(amazonaws\.com|\.aws)$`)
 
 func encodeAsXml(obj interface{}) string {
 	out, err := xml.MarshalIndent(obj, "", "  ")
@@ -45,6 +45,7 @@ func isEof(r *bufio.Reader) bool {
 	return errors.Is(err, io.EOF)
 }
 
+/*
 // whether this is an AWS hostname that should be handled
 func isAwsHostname(hostname string) bool {
 	if strings.HasSuffix(hostname, "amazonaws.com") {
@@ -61,7 +62,9 @@ func isAwsHostname(hostname string) bool {
 
 	return false
 }
+*/
 
+/*
 func httpError(w io.WriteCloser, srcErr error) {
 	if _, err := io.WriteString(w, "HTTP/1.1 502 Bad Gateway\r\n\r\n"); err != nil {
 		panic(fmt.Errorf("Error responding to client: %w", err))
@@ -82,3 +85,4 @@ func httpErrorCode(w io.WriteCloser, code int) {
 		panic(fmt.Errorf("Error closing client connection: %w", err))
 	}
 }
+*/

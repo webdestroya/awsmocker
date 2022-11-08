@@ -35,6 +35,10 @@ func Start(t TestingT, options *MockerOptions) *MockerInfo {
 		options.Mocks = append(options.Mocks, MockStsGetCallerIdentityValid)
 	}
 
+	if options.MockEc2Metadata {
+		options.Mocks = append(options.Mocks, Mock_IMDS_Common()...)
+	}
+
 	// proxy bypass configuration
 	if options.DoNotProxy != "" {
 		noProxyStr := os.Getenv("NO_PROXY")

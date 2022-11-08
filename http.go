@@ -7,7 +7,7 @@ import (
 
 func (m *mocker) handleHttp(w http.ResponseWriter, r *http.Request) {
 
-	r, resp := m.handleRequest(r)
+	_, resp := m.handleRequest(r)
 
 	origBody := resp.Body
 	defer origBody.Close()

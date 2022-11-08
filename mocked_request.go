@@ -5,7 +5,7 @@ import (
 	"net/url"
 	"regexp"
 	"strings"
-	"sync/atomic"
+	"sync"
 
 	"golang.org/x/exp/maps"
 	"golang.org/x/exp/slices"
@@ -61,7 +61,8 @@ type MockedRequest struct {
 	MaxMatchCount int
 
 	// number of times this request has matched
-	matchCount atomic.Int64
+	matchCount int64
+	mu         sync.Mutex
 }
 
 func (mr *MockedRequest) prep() {
@@ -69,7 +70,9 @@ func (mr *MockedRequest) prep() {
 }
 
 func (m *MockedRequest) incMatchCount() {
-	m.matchCount.Add(1)
+	m.mu.Lock()
+	defer m.mu.Unlock()
+	m.matchCount += 1
 }
 
 // Returns a string to help identify this MockedRequest
@@ -121,7 +124,7 @@ func (m *MockedRequest) Inspect() string {
 
 func (m *MockedRequest) matchRequest(rr *ReceivedRequest) bool {
 
-	if m.MaxMatchCount > 0 && m.matchCount.Load() >= int64(m.MaxMatchCount) {
+	if m.MaxMatchCount > 0 && m.matchCount >= int64(m.MaxMatchCount) {
 		return false
 	}
 

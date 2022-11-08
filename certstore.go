@@ -10,7 +10,6 @@ import (
 	"math/big"
 	"net"
 	"sync"
-	"sync/atomic"
 	"time"
 )
 
@@ -24,7 +23,9 @@ var (
 type CertStorage struct {
 	certs sync.Map
 
-	nextSerial atomic.Int64
+	mu sync.Mutex
+
+	nextSerial int64
 	privateKey *rsa.PrivateKey
 }
 
@@ -41,10 +42,15 @@ func (tcs *CertStorage) Fetch(hostname string) *tls.Certificate {
 
 func (tcs *CertStorage) generateCert(hostname string) *tls.Certificate {
 
+	tcs.mu.Lock()
+	defer tcs.mu.Unlock()
+
+	tcs.nextSerial += 1
+
 	caCert := CACert()
 
 	template := x509.Certificate{
-		SerialNumber: big.NewInt(tcs.nextSerial.Add(1)),
+		SerialNumber: big.NewInt(tcs.nextSerial),
 		Issuer:       caCert.Subject,
 		Subject: pkix.Name{
 			Country:            []string{"US"},
@@ -84,12 +90,11 @@ func (tcs *CertStorage) generateCert(hostname string) *tls.Certificate {
 
 func init() {
 	privKey, _ := rsa.GenerateKey(rand.Reader, 2048)
+	startSerial, _ := rand.Int(rand.Reader, big.NewInt(int64(math.Pow(2, 40))))
 
 	globalCertStore = &CertStorage{
 		certs:      sync.Map{},
 		privateKey: privKey,
+		nextSerial: startSerial.Int64(),
 	}
-
-	startSerial, _ := rand.Int(rand.Reader, big.NewInt(int64(math.Pow(2, 40))))
-	globalCertStore.nextSerial.Store(startSerial.Int64())
 }

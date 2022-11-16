@@ -41,5 +41,5 @@ type MockerOptions struct {
 	// By default, receiving an unmatched request will cause the test to be marked as failed
 	// you can pass true to this if you do not want to fail your test when the mocker receives an
 	// unmatched request
-	// DoNotFailUnhandledRequests bool
+	DoNotFailUnhandledRequests bool
 }

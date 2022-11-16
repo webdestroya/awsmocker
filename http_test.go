@@ -11,7 +11,9 @@ import (
 )
 
 func TestProxyHttp(t *testing.T) {
-	awsmocker.Start(t, nil)
+	awsmocker.Start(t, &awsmocker.MockerOptions{
+		DoNotFailUnhandledRequests: true,
+	})
 
 	transport := http.Transport{}
 	proxyUrl, _ := url.Parse(os.Getenv("HTTP_PROXY"))

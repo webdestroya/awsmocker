@@ -21,7 +21,7 @@ func (m *MockedEndpoint) getResponse(rr *ReceivedRequest) *httpResponse {
 	return m.Response.getResponse(rr)
 }
 
-func NewSimpleMockedEndpoint(service, action string, responseObj interface{}) *MockedEndpoint {
+func NewSimpleMockedEndpoint(service, action string, responseObj any) *MockedEndpoint {
 	return &MockedEndpoint{
 		Request: &MockedRequest{
 			Service: service,

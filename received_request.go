@@ -32,9 +32,18 @@ type ReceivedRequest struct {
 	RawBody []byte
 
 	// If the request was a JSON request, then this will be the parsed JSON
-	JsonPayload interface{}
+	JsonPayload any
 
 	invalid bool
+}
+
+func (rr *ReceivedRequest) Inspect() string {
+
+	if rr.Action != "" && rr.Service != "" {
+		return rr.Service + ":" + rr.Action
+	}
+
+	return fmt.Sprintf("%s %s/%s", rr.HttpRequest.Method, rr.Hostname, rr.Path)
 }
 
 func newReceivedRequest(req *http.Request) *ReceivedRequest {
@@ -57,7 +66,7 @@ func newReceivedRequest(req *http.Request) *ReceivedRequest {
 		recvreq.AssumedResponseType = ContentTypeJSON
 
 		if len(bodyBytes) > 0 {
-			var jsonData interface{}
+			var jsonData any
 			if err := json.Unmarshal(bodyBytes, &jsonData); err == nil {
 				recvreq.JsonPayload = jsonData
 			}

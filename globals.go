@@ -5,11 +5,6 @@ import "os"
 var (
 	// Will Print out all the Request/Response traffic from the proxy
 	GlobalDebugMode = false
-
-	// Whether unmatched requests should be proxied through
-	// If your tests contact outside endpoints during tests
-	// then this should be set to true.
-	DefaultAllowPassthrough = true
 )
 
 const (

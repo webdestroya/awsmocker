@@ -68,6 +68,7 @@ func Start(t TestingT, options *MockerOptions) *MockerInfo {
 		verbose:            options.Verbose,
 		debugTraffic:       getDebugMode(), // options.DebugTraffic,
 		doNotOverrideCreds: options.DoNotOverrideCreds,
+		doNotFailUnhandled: options.DoNotFailUnhandledRequests,
 		mocks:              mocks,
 		usingAwsConfig:     options.ReturnAwsConfig,
 	}

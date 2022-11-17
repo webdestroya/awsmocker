@@ -51,6 +51,10 @@ type MockedRequest struct {
 	// setting this to true will match against both the IPv4 and IPv6 hostnames
 	IsEc2IMDS bool
 
+	// Matches a JSON request body by resolving the jmespath expression as keys
+	// and comparing the values returned against the value provided in the map
+	JMESPathMatches map[string]any
+
 	// Write a custom matcher function that will be used to match a request.
 	// this runs after checking the other fields, so you can use those as filters.
 	Matcher func(*ReceivedRequest) bool
@@ -169,8 +173,35 @@ func (m *MockedRequest) matchRequestLazy(rr *ReceivedRequest) bool {
 		return false
 	}
 
+	if m.JMESPathMatches != nil && len(m.JMESPathMatches) > 0 {
+		if ret := m.matchJmespath(rr); !ret {
+			return false
+		}
+	}
+
 	if m.Matcher != nil && !m.Matcher(rr) {
 		return false
+	}
+
+	return true
+}
+
+func (m *MockedRequest) matchJmespath(rr *ReceivedRequest) bool {
+	// just bail out if there is nothing to match
+	if m.JMESPathMatches == nil || len(m.JMESPathMatches) == 0 {
+		return true
+	}
+
+	// you provided Jmes matchers, but this isnt a JSON payload, so it will never match
+	if rr.JsonPayload == nil {
+		return false
+	}
+
+	for k, v := range m.JMESPathMatches {
+		if !JMESMatch(rr.JsonPayload, k, v) {
+			// if any are false, then bail out checking
+			return false
+		}
 	}
 
 	return true

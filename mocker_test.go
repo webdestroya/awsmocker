@@ -258,7 +258,8 @@ func TestBypass(t *testing.T) {
 
 func TestBypassReject(t *testing.T) {
 	awsmocker.Start(t, &awsmocker.MockerOptions{
-		DoNotProxy: "example.com",
+		DoNotProxy:                 "example.com",
+		DoNotFailUnhandledRequests: true,
 	})
 
 	client := &http.Client{

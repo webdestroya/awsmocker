@@ -11,32 +11,39 @@ import (
 type errorResponse struct {
 	XMLName xml.Name `xml:"ErrorResponse" json:"-"`
 
-	Type    string `xml:"Error>Type" json:"__type,omitempty"`
+	Type    string `xml:"Error>Type" json:"-"`
 	Code    string `xml:"Error>Code" json:"code"`
 	Message string `xml:"Error>Message" json:"message"`
 
 	RequestId string `xml:"RequestId" json:"-"`
+
+	statusCode int `xml:"-" json:"-"`
 }
 
 func (e *errorResponse) getResponse(rr *ReceivedRequest) *httpResponse {
+
+	if e.statusCode == 0 {
+		e.statusCode = http.StatusNotImplemented
+	}
+
 	switch rr.AssumedResponseType {
 	case ContentTypeJSON:
 		return &httpResponse{
 			contentType: ContentTypeJSON,
 			Body:        EncodeAsJson(e),
-			StatusCode:  http.StatusNotImplemented, // 501
+			StatusCode:  e.statusCode, // 501
 		}
 	case ContentTypeXML:
 		return &httpResponse{
 			contentType: ContentTypeXML,
 			Body:        encodeAsXml(e),
-			StatusCode:  http.StatusNotImplemented, // 501
+			StatusCode:  e.statusCode, // 501
 		}
 	default:
 		return &httpResponse{
 			contentType: ContentTypeText,
 			Body:        fmt.Sprintf("ERROR! %s: %s", e.Code, e.Message),
-			StatusCode:  http.StatusNotImplemented, // 501
+			StatusCode:  e.statusCode, // 501
 		}
 	}
 }

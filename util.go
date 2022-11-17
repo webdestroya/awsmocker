@@ -11,7 +11,7 @@ import (
 
 // var awsDomainRegexp = regexp.MustCompile(`(amazonaws\.com|\.aws)$`)
 
-func encodeAsXml(obj interface{}) string {
+func encodeAsXml(obj any) string {
 	out, err := xml.MarshalIndent(obj, "", "  ")
 	if err != nil {
 		panic(err)
@@ -20,7 +20,7 @@ func encodeAsXml(obj interface{}) string {
 	return string(out)
 }
 
-func EncodeAsJson(obj interface{}) string {
+func EncodeAsJson(obj any) string {
 	out, err := json.Marshal(obj)
 	if err != nil {
 		panic(err)
@@ -61,28 +61,5 @@ func isAwsHostname(hostname string) bool {
 	}
 
 	return false
-}
-*/
-
-/*
-func httpError(w io.WriteCloser, srcErr error) {
-	if _, err := io.WriteString(w, "HTTP/1.1 502 Bad Gateway\r\n\r\n"); err != nil {
-		panic(fmt.Errorf("Error responding to client: %w", err))
-	}
-	if err := w.Close(); err != nil {
-		panic(fmt.Errorf("Error closing client connection: %w", err))
-	}
-}
-
-func httpErrorCode(w io.WriteCloser, code int) {
-
-	errString := fmt.Sprintf("HTTP/1.1 %d %s\r\n\r\n", code, http.StatusText(code))
-
-	if _, err := io.WriteString(w, errString); err != nil {
-		panic(fmt.Errorf("Error responding to client: %w", err))
-	}
-	if err := w.Close(); err != nil {
-		panic(fmt.Errorf("Error closing client connection: %w", err))
-	}
 }
 */

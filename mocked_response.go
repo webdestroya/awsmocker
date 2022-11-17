@@ -11,7 +11,7 @@ import (
 
 const (
 	ContentTypeXML  = "text/xml"
-	ContentTypeJSON = "application/json"
+	ContentTypeJSON = "application/x-amz-json-1.1"
 	ContentTypeText = "text/plain"
 )
 
@@ -34,7 +34,7 @@ type MockedResponse struct {
 	// func(*ReceivedRequest) (string) = string payload (with 200 OK, inferred content type)
 	// func(*ReceivedRequest) (string, int) = string payload, <int> status code (with inferred content type)
 	// func(*ReceivedRequest) (string, int, string) = string payload, <int> status code, content type
-	Body interface{}
+	Body any
 
 	// Do not wrap the xml response in ACTIONResponse>ACTIONResult
 	DoNotWrap bool
@@ -50,9 +50,9 @@ type MockedResponse struct {
 }
 
 type wrapperStruct struct {
-	XMLName   xml.Name    `xml:"_ACTION_NAME_HERE_Response"`
-	Result    interface{} `xml:"_ACTION_NAME_HERE_Result"`
-	RequestId string      `xml:"ResponseMetadata>RequestId"`
+	XMLName   xml.Name `xml:"_ACTION_NAME_HERE_Response"`
+	Result    any      `xml:"_ACTION_NAME_HERE_Result"`
+	RequestId string   `xml:"ResponseMetadata>RequestId"`
 }
 
 func (m *MockedResponse) prep() {

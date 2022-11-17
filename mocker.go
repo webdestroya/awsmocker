@@ -37,6 +37,7 @@ type mocker struct {
 
 	usingAwsConfig     bool
 	doNotOverrideCreds bool
+	doNotFailUnhandled bool
 
 	// originalEnvVars []string
 
@@ -50,7 +51,7 @@ func (m *mocker) init() {
 }
 
 // Overrides an environment variable and then adds it to the stack to undo later
-func (m *mocker) setEnv(k string, v interface{}) {
+func (m *mocker) setEnv(k string, v any) {
 	val, ok := os.LookupEnv(k)
 	if ok {
 		m.originalEnv[k] = &val
@@ -189,10 +190,9 @@ func (m *mocker) handleRequest(req *http.Request) (*http.Request, *http.Response
 		}
 	}
 
-	// m.Warnf("No matching mocks found for this request!")
-	// if !m.debugTraffic {
-	// 	recvReq.DebugDump()
-	// }
+	if !m.doNotFailUnhandled {
+		m.t.Errorf("No matching request mock was found for this request: %s", recvReq.Inspect())
+	}
 
 	return req, generateErrorStruct("AccessDenied", "No matching request mock was found for this").getResponse(recvReq).toHttpResponse(req)
 }

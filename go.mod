@@ -11,6 +11,7 @@ require (
 	github.com/aws/aws-sdk-go-v2/service/eventbridge v1.16.17
 	github.com/aws/aws-sdk-go-v2/service/sts v1.17.1
 	github.com/clbanning/mxj v1.8.4
+	github.com/google/uuid v1.3.0
 	github.com/jmespath/go-jmespath v0.4.0
 	github.com/stretchr/testify v1.8.1
 	golang.org/x/exp v0.0.0-20221106115401-f9659909a136
@@ -26,7 +27,6 @@ require (
 	github.com/aws/aws-sdk-go-v2/service/ssooidc v1.13.8 // indirect
 	github.com/aws/smithy-go v1.13.4 // indirect
 	github.com/davecgh/go-spew v1.1.1 // indirect
-	github.com/google/uuid v1.3.0 // indirect
 	github.com/pmezard/go-difflib v1.0.0 // indirect
 	gopkg.in/yaml.v3 v3.0.1 // indirect
 )

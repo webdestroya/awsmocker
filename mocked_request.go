@@ -183,6 +183,24 @@ func (m *MockedRequest) matchRequestLazy(rr *ReceivedRequest) bool {
 		return false
 	}
 
+	if m.Params != nil && len(m.Params) > 0 {
+		// if the request has no params, it cant match something with params...
+		if rr.HttpRequest.Form == nil || len(rr.HttpRequest.Form) == 0 {
+			return false
+		}
+
+		for k, v := range m.Params {
+			if !rr.HttpRequest.Form.Has(k) {
+				// key is missing
+				return false
+			}
+
+			if !slices.Equal(v, rr.HttpRequest.Form[k]) {
+				return false
+			}
+		}
+	}
+
 	return true
 }
 

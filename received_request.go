@@ -1,6 +1,7 @@
 package awsmocker
 
 import (
+	"bytes"
 	"encoding/json"
 	"fmt"
 	"io"
@@ -113,33 +114,39 @@ func newReceivedRequest(req *http.Request) *ReceivedRequest {
 }
 
 func (r *ReceivedRequest) DebugDump() {
-	fmt.Println("RECEIVED REQUEST: ----------------------------")
+	// var buf *bytes.Buffer
+	buf := new(bytes.Buffer)
+
+	fmt.Fprintln(buf, "--- AWSMOCKER RECEIVED REQUEST: -----------------------")
 
 	if r.Action != "" || r.Service != "" {
-		fmt.Printf("Operation: %s (service=%s @ %s)\n", r.Action, r.Service, r.Region)
+		fmt.Fprintf(buf, "Operation: %s (service=%s @ %s)\n", r.Action, r.Service, r.Region)
 	}
 
-	fmt.Printf("%s %s\n", r.HttpRequest.Method, r.HttpRequest.RequestURI)
-	fmt.Printf("Host: %s\n", r.HttpRequest.Host)
+	fmt.Fprintf(buf, "%s %s\n", r.HttpRequest.Method, r.HttpRequest.RequestURI)
+	fmt.Fprintf(buf, "Host: %s\n", r.HttpRequest.Host)
 	for k, vlist := range r.HttpRequest.Header {
 		for _, v := range vlist {
-			fmt.Printf("%s: %s\n", k, v)
+			fmt.Fprintf(buf, "%s: %s\n", k, v)
 		}
 	}
 
-	fmt.Println()
+	fmt.Fprintln(buf)
 
 	if len(r.RawBody) > 0 {
-		fmt.Println("BODY:")
-		fmt.Println(string(r.RawBody))
-	} else {
-		fmt.Println("PARAMS:")
+		fmt.Fprintln(buf, "BODY:")
+		fmt.Fprintln(buf, string(r.RawBody))
+	} else if r.HttpRequest.Form != nil && len(r.HttpRequest.Form) > 0 {
+		fmt.Fprintln(buf, "PARAMS:")
 		for k, vlist := range r.HttpRequest.Form {
 			for _, v := range vlist {
-				fmt.Printf("  %s=%s\n", k, v)
+				fmt.Fprintf(buf, "  %s=%s\n", k, v)
 			}
 		}
 	}
 
-	fmt.Println("----------------------------------------------")
+	fmt.Fprintln(buf, "-------------------------------------------------------")
+	fmt.Fprintln(buf)
+
+	buf.WriteTo(DebugOutputWriter)
 }

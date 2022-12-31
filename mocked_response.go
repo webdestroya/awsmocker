@@ -95,7 +95,7 @@ func (m *MockedResponse) getResponse(rr *ReceivedRequest) *httpResponse {
 		case func(*ReceivedRequest) (string, int, string):
 			// valid function
 		default:
-			return generateErrorStruct("InvalidBodyFunc", "the function you gave for the body has the wrong signature").getResponse(rr)
+			return generateErrorStruct(0, "InvalidBodyFunc", "the function you gave for the body has the wrong signature").getResponse(rr)
 		}
 
 		respRet := rBody.Call([]reflect.Value{reflect.ValueOf(rr)})
@@ -155,7 +155,7 @@ func (m *MockedResponse) getResponse(rr *ReceivedRequest) *httpResponse {
 
 				xmlout, err := mxj.AnyXmlIndent(m.Body, "", "  ", m.RootTag, "")
 				if err != nil {
-					return generateErrorStruct("BadMockBody", "Could not serialize body to XML: %s", err).getResponse(rr)
+					return generateErrorStruct(0, "BadMockBody", "Could not serialize body to XML: %s", err).getResponse(rr)
 				}
 
 				return &httpResponse{
@@ -171,7 +171,7 @@ func (m *MockedResponse) getResponse(rr *ReceivedRequest) *httpResponse {
 
 				xmlout, err := mxj.AnyXmlIndent(wrappedObj, "", "  ", ""+actionName+"Response")
 				if err != nil {
-					return generateErrorStruct("BadMockBody", "Could not serialize body to XML: %s", err).getResponse(rr)
+					return generateErrorStruct(0, "BadMockBody", "Could not serialize body to XML: %s", err).getResponse(rr)
 				}
 
 				return &httpResponse{
@@ -190,7 +190,7 @@ func (m *MockedResponse) getResponse(rr *ReceivedRequest) *httpResponse {
 
 				xmlout, err := mxj.AnyXmlIndent(wrappedMap, "", "  ", ""+actionName+"Response")
 				if err != nil {
-					return generateErrorStruct("BadMockBody", "Could not serialize body to XML: %s", err).getResponse(rr)
+					return generateErrorStruct(0, "BadMockBody", "Could not serialize body to XML: %s", err).getResponse(rr)
 				}
 
 				return &httpResponse{
@@ -213,5 +213,5 @@ func (m *MockedResponse) getResponse(rr *ReceivedRequest) *httpResponse {
 			}
 		}
 	}
-	return generateErrorStruct("BadMockResponse", "Don't know how to encode a kind=%v using content type=%s", bodyKind, m.ContentType).getResponse(rr)
+	return generateErrorStruct(0, "BadMockResponse", "Don't know how to encode a kind=%v using content type=%s", bodyKind, m.ContentType).getResponse(rr)
 }

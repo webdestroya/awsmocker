@@ -173,7 +173,7 @@ func (m *mocker) handleRequest(req *http.Request) (*http.Request, *http.Response
 	if recvReq.invalid {
 		recvReq.DebugDump()
 		m.t.Errorf("You provided an invalid request")
-		return req, generateErrorStruct("AccessDenied", "You provided a bad or invalid request").getResponse(recvReq).toHttpResponse(req)
+		return req, generateErrorStruct(http.StatusNotImplemented, "AccessDenied", "You provided a bad or invalid request").getResponse(recvReq).toHttpResponse(req)
 	}
 
 	if m.debugTraffic {
@@ -194,7 +194,7 @@ func (m *mocker) handleRequest(req *http.Request) (*http.Request, *http.Response
 		m.t.Errorf("No matching request mock was found for this request: %s", recvReq.Inspect())
 	}
 
-	return req, generateErrorStruct("AccessDenied", "No matching request mock was found for this").getResponse(recvReq).toHttpResponse(req)
+	return req, generateErrorStruct(http.StatusNotImplemented, "AccessDenied", "No matching request mock was found for this").getResponse(recvReq).toHttpResponse(req)
 }
 
 func (m *mocker) ServeHTTP(w http.ResponseWriter, r *http.Request) {

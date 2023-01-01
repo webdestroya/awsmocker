@@ -149,5 +149,5 @@ func (r *ReceivedRequest) DebugDump() {
 	fmt.Fprintln(buf, "-------------------------------------------------------")
 	fmt.Fprintln(buf)
 
-	buf.WriteTo(DebugOutputWriter)
+	_, _ = buf.WriteTo(DebugOutputWriter)
 }

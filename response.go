@@ -92,7 +92,7 @@ func (hr *httpResponse) toHttpResponse(req *http.Request) *http.Response {
 		fmt.Fprintln(DebugOutputWriter, "--- AWSMOCKER RESPONSE: -------------------------------")
 		dump, err := httputil.DumpResponse(resp, true)
 		if err == nil {
-			DebugOutputWriter.Write(dump)
+			_, _ = DebugOutputWriter.Write(dump)
 		} else {
 			fmt.Fprintf(DebugOutputWriter, "FAILED TO DUMP RESPONSE!: %s", err)
 		}

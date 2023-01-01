@@ -5,7 +5,7 @@ import (
 )
 
 type MockerOptions struct {
-	// Add extra logging. This is deprecated, you should just use the AWSMOCKER_DEBUG=1 env var and do a targetted test run
+	// Add extra logging. This is deprecated, you should just use the AWSMOCKER_DEBUG=1 env var and do a targeted test run
 	Verbose bool
 
 	// if true, then env vars for various aws credentials will not be set.

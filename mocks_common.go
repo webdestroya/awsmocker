@@ -19,10 +19,12 @@ func Mock_Failure_WithCode(statusCode int, service, action, errorCode, errorMess
 
 // Returns an error response with a custom code and message
 func MockResponse_Error(statusCode int, errorCode, errorMessage string) *MockedResponse {
-	errObj := generateErrorStruct(errorCode, errorMessage)
 	if statusCode == 0 {
 		statusCode = 400
 	}
+
+	errObj := generateErrorStruct(statusCode, errorCode, errorMessage)
+
 	return &MockedResponse{
 		Handler: func(rr *ReceivedRequest) *http.Response {
 			resp := errObj.getResponse(rr).toHttpResponse(rr.HttpRequest)

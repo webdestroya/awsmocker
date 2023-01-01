@@ -1,10 +1,16 @@
 package awsmocker
 
-import "os"
+import (
+	"io"
+	"os"
+)
 
 var (
 	// Will Print out all the Request/Response traffic from the proxy
 	GlobalDebugMode = false
+
+	// where debugging output will go if requested
+	DebugOutputWriter io.Writer = os.Stdout
 )
 
 const (

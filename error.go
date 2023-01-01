@@ -23,7 +23,8 @@ type errorResponse struct {
 func (e *errorResponse) getResponse(rr *ReceivedRequest) *httpResponse {
 
 	if e.statusCode == 0 {
-		e.statusCode = http.StatusNotImplemented
+		e.statusCode = http.StatusBadRequest
+		// e.statusCode = http.StatusTeapot
 	}
 
 	switch rr.AssumedResponseType {
@@ -48,11 +49,12 @@ func (e *errorResponse) getResponse(rr *ReceivedRequest) *httpResponse {
 	}
 }
 
-func generateErrorStruct(code string, message string, args ...any) *errorResponse {
+func generateErrorStruct(statusCode int, code string, message string, args ...any) *errorResponse {
 	return &errorResponse{
-		Type:      "Sender",
-		Code:      code,
-		Message:   fmt.Sprintf(message, args...),
-		RequestId: "7a62c49f-347e-4fc4-9331-6e8eEXAMPLE",
+		Type:       "Sender",
+		Code:       code,
+		Message:    fmt.Sprintf(message, args...),
+		RequestId:  "7a62c49f-347e-4fc4-9331-6e8eEXAMPLE",
+		statusCode: statusCode,
 	}
 }

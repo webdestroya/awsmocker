@@ -11,6 +11,7 @@ require (
 	github.com/aws/aws-sdk-go-v2/service/eventbridge v1.16.17
 	github.com/aws/aws-sdk-go-v2/service/sts v1.17.1
 	github.com/clbanning/mxj v1.8.4
+	github.com/google/uuid v1.3.0
 	github.com/jmespath/go-jmespath v0.4.0
 	github.com/stretchr/testify v1.8.1
 	golang.org/x/exp v0.0.0-20221106115401-f9659909a136

@@ -5,7 +5,10 @@ import (
 	"fmt"
 	"io"
 	"net/http"
+	"net/http/httputil"
 	"time"
+
+	"github.com/google/uuid"
 )
 
 type httpResponse struct {
@@ -70,7 +73,7 @@ func (hr *httpResponse) toHttpResponse(req *http.Request) *http.Response {
 	}
 
 	if x := resp.Header.Get("X-Amzn-Requestid"); x == "" {
-		resp.Header.Add("X-Amzn-Requestid", "1b206dd1-f9a8-11e5-becf-051c60f11c4a")
+		resp.Header.Add("X-Amzn-Requestid", generateRequestId())
 	}
 
 	resp.Status = http.StatusText(resp.StatusCode)
@@ -86,18 +89,26 @@ func (hr *httpResponse) toHttpResponse(req *http.Request) *http.Response {
 	resp.Body = io.NopCloser(buf)
 
 	if GlobalDebugMode {
-		fmt.Println("MOCK RESPONSE: -----------------------------")
-		fmt.Printf("HTTP/%d.%d %d %s\n", resp.ProtoMajor, resp.ProtoMinor, hr.StatusCode, resp.Status)
-		for k, vlist := range resp.Header {
-			for _, v := range vlist {
-				fmt.Printf("%s: %s\n", k, v)
-			}
+		fmt.Fprintln(DebugOutputWriter, "--- AWSMOCKER RESPONSE: -------------------------------")
+		dump, err := httputil.DumpResponse(resp, true)
+		if err == nil {
+			_, _ = DebugOutputWriter.Write(dump)
+		} else {
+			fmt.Fprintf(DebugOutputWriter, "FAILED TO DUMP RESPONSE!: %s", err)
 		}
-		fmt.Printf("Content-Length: %d\n", resp.ContentLength)
-		fmt.Println()
-		fmt.Println(hr.Body)
-		fmt.Println("--------------------------------------------")
+		fmt.Fprintln(DebugOutputWriter)
+		fmt.Fprintln(DebugOutputWriter, "-------------------------------------------------------")
 	}
 
 	return resp
+}
+
+// generate a request using a real UUID. if that fails, who cares this is a test
+func generateRequestId() string {
+	id, err := uuid.NewRandom()
+	if err != nil {
+		return "1b206dd1-f9a8-11e5-becf-051c60f11c4a"
+	}
+
+	return id.String()
 }

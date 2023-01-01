@@ -48,10 +48,7 @@ func TestEcsDescribeServices(t *testing.T) {
 		Cluster:  aws.String("testcluster"),
 	})
 	require.NoError(t, err)
-
-	if *resp.Services[0].ServiceName != "someservice" {
-		t.Errorf("Service name was wrong: %s", *resp.Services[0].ServiceName)
-	}
+	require.Equalf(t, "someservice", *resp.Services[0].ServiceName, "Service name was wrong")
 }
 
 func TestStsGetCallerIdentity_WithObj(t *testing.T) {
@@ -78,10 +75,7 @@ func TestStsGetCallerIdentity_WithObj(t *testing.T) {
 
 	resp, err := stsClient.GetCallerIdentity(context.TODO(), nil)
 	require.NoError(t, err)
-
-	if *resp.Account != awsmocker.DefaultAccountId {
-		t.Errorf("AccountID Mismatch: %v", *resp.Account)
-	}
+	require.Equalf(t, awsmocker.DefaultAccountId, *resp.Account, "AccountID Mismatch")
 }
 
 func TestStsGetCallerIdentity_WithMap(t *testing.T) {
@@ -274,7 +268,6 @@ func TestBypassReject(t *testing.T) {
 	resp, err := client.Head("https://example.org/")
 	require.NoError(t, err)
 	require.Equal(t, "webdestroya", resp.TLS.PeerCertificates[0].Subject.Organization[0])
-	testutil.PrintHttpResponse(t, resp)
 	require.Equal(t, http.StatusNotImplemented, resp.StatusCode)
 	// require.ErrorContains(t, err, "Not Implemented")
 

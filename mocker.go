@@ -1,6 +1,7 @@
 package awsmocker
 
 import (
+	"bytes"
 	"fmt"
 	"net/http"
 	"net/http/httptest"
@@ -38,8 +39,6 @@ type mocker struct {
 	usingAwsConfig     bool
 	doNotOverrideCreds bool
 	doNotFailUnhandled bool
-
-	// originalEnvVars []string
 
 	originalEnv map[string]*string
 
@@ -85,20 +84,11 @@ func (m *mocker) revertEnv() {
 	}
 }
 
-// func (m *mocker) Setenv(k, v string) {
-// 	if v == "" {
-// 		_ = os.Unsetenv(k)
-// 	} else {
-// 		_ = os.Setenv(k, v)
-// 	}
-// }
-
 func (m *mocker) Start() {
 	// reset Go's proxy cache
 	resetProxyConfig()
 
 	m.init()
-	// m.originalEnvVars = os.Environ()
 
 	m.t.Cleanup(m.Shutdown)
 
@@ -140,11 +130,6 @@ func (m *mocker) Start() {
 func (m *mocker) Shutdown() {
 	m.httpServer.Close()
 
-	// os.Clearenv()
-	// for _, e := range m.originalEnvVars {
-	// 	pair := strings.SplitN(e, "=", 2)
-	// 	_ = os.Setenv(pair[0], pair[1])
-	// }
 	m.revertEnv()
 
 	// reset Go's proxy cache
@@ -170,11 +155,11 @@ func (m *mocker) printf(format string, args ...any) {
 func (m *mocker) handleRequest(req *http.Request) (*http.Request, *http.Response) {
 	recvReq := newReceivedRequest(req)
 
-	if recvReq.invalid {
-		recvReq.DebugDump()
-		m.t.Errorf("You provided an invalid request")
-		return req, generateErrorStruct(http.StatusNotImplemented, "AccessDenied", "You provided a bad or invalid request").getResponse(recvReq).toHttpResponse(req)
-	}
+	// if recvReq.invalid {
+	// 	recvReq.DebugDump()
+	// 	m.t.Errorf("You provided an invalid request")
+	// 	return req, generateErrorStruct(http.StatusNotImplemented, "AccessDenied", "You provided a bad or invalid request").getResponse(recvReq).toHttpResponse(req)
+	// }
 
 	if m.debugTraffic {
 		recvReq.DebugDump()
@@ -201,16 +186,16 @@ func (m *mocker) ServeHTTP(w http.ResponseWriter, r *http.Request) {
 	hostname := r.URL.Hostname()
 
 	if m.verbose {
-		fmt.Println("AWSMocker Proxy Request:")
-		fmt.Printf("%s %s [%s]\n", r.Method, r.RequestURI, r.Proto)
-		fmt.Printf("Host: %s --- Raw: %s\n", hostname, r.Host)
+		buf := new(bytes.Buffer)
+		fmt.Fprintln(buf, "AWSMocker Proxy Request:")
+		fmt.Fprintf(buf, "%s %s [%s]\n", r.Method, r.RequestURI, r.Proto)
+		fmt.Fprintf(buf, "Host: %s --- Raw: %s\n", hostname, r.Host)
 		for k, vlist := range r.Header {
 			for _, v := range vlist {
-				fmt.Printf("%s: %s\n", k, v)
+				fmt.Fprintf(buf, "%s: %s\n", k, v)
 			}
 		}
-		fmt.Println("---------------------------")
-		fmt.Println()
+		m.Logf(buf.String())
 	}
 
 	if r.Method == "CONNECT" {

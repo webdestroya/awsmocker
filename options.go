@@ -5,11 +5,8 @@ import (
 )
 
 type MockerOptions struct {
-	// Add extra logging
+	// Add extra logging. This is deprecated, you should just use the AWSMOCKER_DEBUG=1 env var and do a targetted test run
 	Verbose bool
-
-	// dump request/responses to the log
-	// DebugTraffic bool
 
 	// if true, then env vars for various aws credentials will not be set.
 	// This is dangerous, because if the proxy were to fail, then your requests may actually

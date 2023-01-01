@@ -1,12 +1,9 @@
 package testutil
 
 import (
-	"bufio"
 	"bytes"
 	"context"
 	"io"
-	"net/http"
-	"testing"
 
 	"github.com/aws/aws-sdk-go-v2/aws"
 	"github.com/aws/aws-sdk-go-v2/config"
@@ -26,21 +23,6 @@ func GetAwsConfig() aws.Config {
 		panic(err)
 	}
 	return cfg
-}
-
-func PrintHttpResponse(t *testing.T, resp *http.Response) {
-	if !testing.Verbose() {
-		return
-	}
-
-	var buff bytes.Buffer
-	writer := bufio.NewWriter(&buff)
-	err := resp.Write(writer)
-	if err != nil {
-		t.Errorf("error outputting http response: %s", err)
-	}
-	writer.Flush()
-	t.Log("RESPONSE:\n>>>>>>>>>>>>>>>>>>>>>>>>\n" + buff.String() + "\n<<<<<<<<<<<<<<<<<<<<<<<<")
 }
 
 func ReaderToString(rdr io.ReadCloser) string {

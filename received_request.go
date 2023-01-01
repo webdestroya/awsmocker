@@ -35,7 +35,8 @@ type ReceivedRequest struct {
 	// If the request was a JSON request, then this will be the parsed JSON
 	JsonPayload any
 
-	invalid bool
+	// TBA: maybe in the future we'll add invalid request flagging, for now allow all types
+	// invalid bool
 }
 
 func (rr *ReceivedRequest) Inspect() string {

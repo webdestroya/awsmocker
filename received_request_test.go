@@ -29,17 +29,13 @@ func TestReceivedRequest_DebugDump(t *testing.T) {
 
 	// }
 
-	info := awsmocker.Start(t, &awsmocker.MockerOptions{
-		SkipDefaultMocks: true,
-		ReturnAwsConfig:  true,
-		// V
-		Mocks: []*awsmocker.MockedEndpoint{
-			awsmocker.Mock_Failure("ecs", "ListClusters"),
-			awsmocker.Mock_Failure_WithCode(403, "ecs", "ListServices", "SomeCode", "SomeMessage"),
-		},
-	})
+	info := awsmocker.Start(t,
+		awsmocker.WithoutDefaultMocks(),
+		awsmocker.WithMock(awsmocker.Mock_Failure("ecs", "ListClusters")),
+		awsmocker.WithMock(awsmocker.Mock_Failure_WithCode(403, "ecs", "ListServices", "SomeCode", "SomeMessage")),
+	)
 
-	ecsClient := ecs.NewFromConfig(*info.AwsConfig)
+	ecsClient := ecs.NewFromConfig(info.Config())
 
 	_, err := ecsClient.ListClusters(context.TODO(), &ecs.ListClustersInput{})
 	require.Error(t, err)

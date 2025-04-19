@@ -1,7 +1,8 @@
 package awsmocker
 
 import (
-	"os"
+	"net/http"
+	"net/url"
 	"time"
 
 	"github.com/aws/aws-sdk-go-v2/aws"
@@ -13,23 +14,52 @@ type MockerInfo struct {
 	ProxyURL string
 
 	// Aws configuration to use
-	// This is only provided if you gave ReturnAwsConfig in the options
-	AwsConfig *aws.Config
+	// Deprecated: use [Config] instead
+	awsConfig *aws.Config
 }
 
-func Start(t TestingT, options *MockerOptions) *MockerInfo {
+func (m MockerInfo) Config() aws.Config {
+	if m.awsConfig == nil {
+		panic("aws config was not setup properly")
+	}
+	return *m.awsConfig
+}
+
+// Use this for custom proxy configurations
+func (m MockerInfo) Proxy() func(*http.Request) (*url.URL, error) {
+	uri, err := url.Parse(m.ProxyURL)
+	return func(r *http.Request) (*url.URL, error) {
+		return uri, err
+	}
+}
+
+func Start(t TestingT, optFns ...MockerOptionFunc) *MockerInfo {
 
 	if h, ok := t.(tHelper); ok {
 		h.Helper()
 	}
 
-	if options == nil {
-		options = &MockerOptions{}
+	options := &mockerOptions{
+		ReturnAwsConfig:  true,
+		Timeout:          5 * time.Second,
+		AwsConfigOptions: make([]AwsLoadOptionsFunc, 0, 10),
+		Mocks:            make([]*MockedEndpoint, 0, 10),
 	}
 
-	if options.Timeout == 0 {
-		options.Timeout = 5 * time.Second
+	for _, optFn := range optFns {
+
+		// makes transitioning somewhat easier
+		if optFn == nil {
+			continue
+		}
+		optFn(options)
 	}
+
+	options.ReturnAwsConfig = true
+
+	// if options.Timeout == 0 {
+	// 	options.Timeout = 5 * time.Second
+	// }
 
 	if !options.SkipDefaultMocks {
 		options.Mocks = append(options.Mocks, MockStsGetCallerIdentityValid)
@@ -40,19 +70,19 @@ func Start(t TestingT, options *MockerOptions) *MockerInfo {
 	}
 
 	// proxy bypass configuration
-	if options.DoNotProxy != "" {
-		noProxyStr := os.Getenv("NO_PROXY")
-		if noProxyStr == "" {
-			noProxyStr = os.Getenv("no_proxy")
-		}
-		if noProxyStr != "" {
-			noProxyStr += ","
-		}
-		noProxyStr += options.DoNotProxy
+	// if options.DoNotProxy != "" {
+	// 	noProxyStr := os.Getenv("NO_PROXY")
+	// 	if noProxyStr == "" {
+	// 		noProxyStr = os.Getenv("no_proxy")
+	// 	}
+	// 	if noProxyStr != "" {
+	// 		noProxyStr += ","
+	// 	}
+	// 	noProxyStr += options.DoNotProxy
 
-		t.Setenv("NO_PROXY", noProxyStr)
-		t.Setenv("no_proxy", noProxyStr)
-	}
+	// 	t.Setenv("NO_PROXY", noProxyStr)
+	// 	t.Setenv("no_proxy", noProxyStr)
+	// }
 
 	mocks := make([]*MockedEndpoint, 0, len(options.Mocks))
 	for i := range options.Mocks {
@@ -70,17 +100,15 @@ func Start(t TestingT, options *MockerOptions) *MockerInfo {
 		doNotOverrideCreds: options.DoNotOverrideCreds,
 		doNotFailUnhandled: options.DoNotFailUnhandledRequests,
 		mocks:              mocks,
-		usingAwsConfig:     options.ReturnAwsConfig,
+		usingAwsConfig:     true,
 	}
 	server.Start()
 
-	info := &MockerInfo{
-		ProxyURL: server.httpServer.URL,
-	}
+	cfg := server.buildAwsConfig()
 
-	if options.ReturnAwsConfig {
-		cfg := server.buildAwsConfig()
-		info.AwsConfig = &cfg
+	info := &MockerInfo{
+		ProxyURL:  server.httpServer.URL,
+		awsConfig: &cfg,
 	}
 
 	return info

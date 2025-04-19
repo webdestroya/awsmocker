@@ -8,6 +8,11 @@ Easily create a proxy to allow easy testing of AWS API calls.
 
 **:warning: This is considered alpha quality right now. It might not work for all of AWS's APIs.**
 
+> [!IMPORTANT]  
+> Version 1.0.0 has **BREAKING CHANGES**:
+> * You must use the `aws.Config` struct returned in your clients.
+> * The `Start` function has been modified to accept variable arguments for options setting
+
 If you find problems, please create an Issue or make a PR.
 
 ## Installation

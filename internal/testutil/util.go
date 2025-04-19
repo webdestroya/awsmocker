@@ -10,6 +10,7 @@ import (
 	"github.com/aws/aws-sdk-go-v2/credentials"
 )
 
+// Deprecated: DONT USE THIS
 func GetAwsConfig() aws.Config {
 	cfg, err := config.LoadDefaultConfig(context.TODO(),
 		// add creds just in case something happens

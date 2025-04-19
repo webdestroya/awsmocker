@@ -12,11 +12,9 @@ import (
 )
 
 func TestEc2IMDS(t *testing.T) {
-	awsmocker.Start(t, &awsmocker.MockerOptions{
-		MockEc2Metadata: true,
-	})
+	m := awsmocker.Start(t, awsmocker.WithMockEC2Metadata(true))
 
-	client := imds.NewFromConfig(testutil.GetAwsConfig())
+	client := imds.NewFromConfig(m.Config())
 
 	ctx := context.TODO()
 

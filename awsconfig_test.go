@@ -10,10 +10,8 @@ import (
 )
 
 func TestAwsConfigBuilder(t *testing.T) {
-	info := awsmocker.Start(t, &awsmocker.MockerOptions{
-		ReturnAwsConfig: true,
-	})
-	stsClient := sts.NewFromConfig(*info.AwsConfig)
+	info := awsmocker.Start(t)
+	stsClient := sts.NewFromConfig(info.Config())
 
 	resp, err := stsClient.GetCallerIdentity(context.TODO(), nil)
 	require.NoError(t, err)

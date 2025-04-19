@@ -2,8 +2,6 @@ package awsmocker_test
 
 import (
 	"net/http"
-	"net/url"
-	"os"
 	"testing"
 
 	"github.com/stretchr/testify/require"
@@ -11,13 +9,11 @@ import (
 )
 
 func TestProxyHttp(t *testing.T) {
-	awsmocker.Start(t, &awsmocker.MockerOptions{
-		DoNotFailUnhandledRequests: true,
-	})
+	info := awsmocker.Start(t, awsmocker.WithoutFailingUnhandledRequests())
 
-	transport := http.Transport{}
-	proxyUrl, _ := url.Parse(os.Getenv("HTTP_PROXY"))
-	transport.Proxy = http.ProxyURL(proxyUrl) // set proxy
+	transport := http.Transport{
+		Proxy: info.Proxy(),
+	}
 	// transport.TLSClientConfig = &tls.Config{InsecureSkipVerify: true} //set ssl
 
 	client := &http.Client{

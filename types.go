@@ -3,6 +3,8 @@ package awsmocker
 import (
 	"net"
 	"net/http"
+
+	"github.com/aws/aws-sdk-go-v2/config"
 )
 
 const (
@@ -48,3 +50,8 @@ const (
 )
 
 type MockedRequestHandler = func(*ReceivedRequest) *http.Response
+
+// Come on Amazon...
+// Can't use {config.LoadOptionsFunc} because that is not a param for LoadDefaultConfig
+// Why would you define the type and then not even use it...
+type AwsLoadOptionsFunc = func(*config.LoadOptions) error

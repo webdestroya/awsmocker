@@ -6,7 +6,6 @@ import (
 	"net/http"
 	"net/http/httptest"
 	"os"
-	"path"
 	"time"
 )
 
@@ -86,7 +85,7 @@ func (m *mocker) revertEnv() {
 
 func (m *mocker) Start() {
 	// reset Go's proxy cache
-	resetProxyConfig()
+	// resetProxyConfig()
 
 	m.init()
 
@@ -97,22 +96,22 @@ func (m *mocker) Start() {
 	}
 
 	// if we are using aws config, then we don't need this
-	if !m.usingAwsConfig {
-		caBundlePath := path.Join(m.t.TempDir(), "awsmockcabundle.pem")
-		err := writeCABundle(caBundlePath)
-		if err != nil {
-			m.t.Errorf("Failed to write CA Bundle: %s", err)
-		}
-		m.setEnv(envAwsCaBundle, caBundlePath)
-	}
+	// if !m.usingAwsConfig {
+	// 	caBundlePath := path.Join(m.t.TempDir(), "awsmockcabundle.pem")
+	// 	err := writeCABundle(caBundlePath)
+	// 	if err != nil {
+	// 		m.t.Errorf("Failed to write CA Bundle: %s", err)
+	// 	}
+	// 	m.setEnv(envAwsCaBundle, caBundlePath)
+	// }
 
 	ts := httptest.NewServer(m)
 	m.httpServer = ts
 
-	m.setEnv("HTTP_PROXY", ts.URL)
-	m.setEnv("http_proxy", ts.URL)
-	m.setEnv("HTTPS_PROXY", ts.URL)
-	m.setEnv("https_proxy", ts.URL)
+	// m.setEnv("HTTP_PROXY", ts.URL)
+	// m.setEnv("http_proxy", ts.URL)
+	// m.setEnv("HTTPS_PROXY", ts.URL)
+	// m.setEnv("https_proxy", ts.URL)
 
 	// m.setEnv(envAwsEc2MetaDisable, "true")
 	m.setEnv(envAwsDefaultRegion, DefaultRegion)

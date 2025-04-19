@@ -15,7 +15,7 @@ import (
 
 // If your application is setup to where you can provide an aws.Config object for your clients,
 // then using the one provided by this method will make testing much easier.
-func (m *mocker) buildAwsConfig() aws.Config {
+func (m *mocker) buildAwsConfig(opts ...AwsLoadOptionsFunc) aws.Config {
 
 	httpClient := awshttp.NewBuildableClient().WithTimeout(10 * time.Second).WithTransportOptions(func(t *http.Transport) {
 		proxyUrl, _ := url.Parse(m.httpServer.URL)
@@ -25,15 +25,15 @@ func (m *mocker) buildAwsConfig() aws.Config {
 		// t.TLSClientConfig = &tls.Config{InsecureSkipVerify: true}
 	})
 
-	cfg, err := config.LoadDefaultConfig(context.TODO(),
-		config.WithCredentialsProvider(credentials.NewStaticCredentialsProvider("XXfakekey", "XXfakesecret", "xxtoken")),
-		config.WithDefaultRegion(DefaultRegion),
-		config.WithHTTPClient(httpClient),
-		config.WithCustomCABundle(bytes.NewReader(caCert)),
-		config.WithRetryer(func() aws.Retryer {
-			return aws.NopRetryer{}
-		}),
-	)
+	opts = append(opts, config.WithCredentialsProvider(credentials.NewStaticCredentialsProvider("XXfakekey", "XXfakesecret", "xxtoken")))
+	opts = append(opts, config.WithDefaultRegion(DefaultRegion))
+	opts = append(opts, config.WithHTTPClient(httpClient))
+	opts = append(opts, config.WithCustomCABundle(bytes.NewReader(caCert)))
+	opts = append(opts, config.WithRetryer(func() aws.Retryer {
+		return aws.NopRetryer{}
+	}))
+
+	cfg, err := config.LoadDefaultConfig(context.TODO(), opts...)
 	if err != nil {
 		panic(err)
 	}

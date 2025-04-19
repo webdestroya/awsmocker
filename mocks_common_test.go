@@ -14,9 +14,9 @@ import (
 )
 
 func TestMockResponse_Error(t *testing.T) {
-	info := awsmocker.Start(t, &awsmocker.MockerOptions{
-		SkipDefaultMocks: true,
-		Mocks: []*awsmocker.MockedEndpoint{
+	info := awsmocker.Start(t,
+		awsmocker.WithoutDefaultMocks(),
+		awsmocker.WithMocks([]*awsmocker.MockedEndpoint{
 			{
 				Request: &awsmocker.MockedRequest{
 					Hostname: "test.com",
@@ -38,8 +38,8 @@ func TestMockResponse_Error(t *testing.T) {
 				},
 				Response: awsmocker.MockResponse_Error(0, "SomeCode0", "SomeMessage"),
 			},
-		},
-	})
+		}...),
+	)
 
 	client := &http.Client{
 		Transport: &http.Transport{
@@ -86,16 +86,13 @@ func TestMockResponse_Error(t *testing.T) {
 }
 
 func TestMock_Failure(t *testing.T) {
-	info := awsmocker.Start(t, &awsmocker.MockerOptions{
-		SkipDefaultMocks: true,
-		ReturnAwsConfig:  true,
-		Mocks: []*awsmocker.MockedEndpoint{
-			awsmocker.Mock_Failure("ecs", "ListClusters"),
-			awsmocker.Mock_Failure_WithCode(403, "ecs", "ListServices", "SomeCode", "SomeMessage"),
-		},
-	})
+	info := awsmocker.Start(t,
+		awsmocker.WithoutDefaultMocks(),
+		awsmocker.WithMock(awsmocker.Mock_Failure("ecs", "ListClusters")),
+		awsmocker.WithMock(awsmocker.Mock_Failure_WithCode(403, "ecs", "ListServices", "SomeCode", "SomeMessage")),
+	)
 
-	ecsClient := ecs.NewFromConfig(*info.AwsConfig)
+	ecsClient := ecs.NewFromConfig(info.Config())
 
 	_, err := ecsClient.ListClusters(context.TODO(), &ecs.ListClustersInput{})
 	require.Error(t, err)

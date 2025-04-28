@@ -31,8 +31,8 @@ func TestReceivedRequest_DebugDump(t *testing.T) {
 
 	info := awsmocker.Start(t,
 		awsmocker.WithoutDefaultMocks(),
-		awsmocker.WithMock(awsmocker.Mock_Failure("ecs", "ListClusters")),
-		awsmocker.WithMock(awsmocker.Mock_Failure_WithCode(403, "ecs", "ListServices", "SomeCode", "SomeMessage")),
+		awsmocker.WithMocks(awsmocker.Mock_Failure("ecs", "ListClusters")),
+		awsmocker.WithMocks(awsmocker.Mock_Failure_WithCode(403, "ecs", "ListServices", "SomeCode", "SomeMessage")),
 	)
 
 	ecsClient := ecs.NewFromConfig(info.Config())

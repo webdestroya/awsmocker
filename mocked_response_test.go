@@ -1,10 +1,10 @@
 package awsmocker
 
 import (
+	"maps"
 	"testing"
 
 	"github.com/stretchr/testify/require"
-	"golang.org/x/exp/maps"
 )
 
 func TestMockedResponse_getResponse(t *testing.T) {

@@ -7,6 +7,7 @@ func Mock_Failure(service, action string) *MockedEndpoint {
 	return Mock_Failure_WithCode(0, service, action, "AccessDenied", "This mock was requested to fail")
 }
 
+// Mocks a specific Service:Action call to return an error
 func Mock_Failure_WithCode(statusCode int, service, action, errorCode, errorMessage string) *MockedEndpoint {
 	return &MockedEndpoint{
 		Request: &MockedRequest{

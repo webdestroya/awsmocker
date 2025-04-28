@@ -25,15 +25,24 @@ func (m *mocker) buildAwsConfig(opts ...AwsLoadOptionsFunc) aws.Config {
 		// t.TLSClientConfig = &tls.Config{InsecureSkipVerify: true}
 	})
 
-	opts = append(opts, config.WithCredentialsProvider(credentials.NewStaticCredentialsProvider("XXfakekey", "XXfakesecret", "xxtoken")))
-	opts = append(opts, config.WithDefaultRegion(DefaultRegion))
-	opts = append(opts, config.WithHTTPClient(httpClient))
-	opts = append(opts, config.WithCustomCABundle(bytes.NewReader(caCert)))
-	opts = append(opts, config.WithRetryer(func() aws.Retryer {
+	options := make([]AwsLoadOptionsFunc, 0, 15)
+
+	options = append(options, config.WithDefaultRegion(DefaultRegion))
+	options = append(options, config.WithDisableRequestCompression(aws.Bool(true)))
+	options = append(options, config.WithCredentialsProvider(credentials.NewStaticCredentialsProvider("XXfakekey", "XXfakesecret", "xxtoken")))
+	options = append(options, config.WithDefaultRegion(DefaultRegion))
+	options = append(options, config.WithHTTPClient(httpClient))
+	options = append(options, config.WithCustomCABundle(bytes.NewReader(caCert)))
+	options = append(options, config.WithRetryer(func() aws.Retryer {
 		return aws.NopRetryer{}
 	}))
 
-	cfg, err := config.LoadDefaultConfig(context.TODO(), opts...)
+	// apply the options the user wanted
+	options = append(options, opts...)
+
+	options = append(options, addMiddlewareConfigOption(m))
+
+	cfg, err := config.LoadDefaultConfig(context.TODO(), options...)
 	if err != nil {
 		panic(err)
 	}

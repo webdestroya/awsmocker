@@ -19,6 +19,6 @@ func (m *mocker) handleHttp(w http.ResponseWriter, r *http.Request) {
 	}
 }
 
-var handleNonProxyRequest = http.HandlerFunc(func(w http.ResponseWriter, r *http.Request) {
+var handleNonProxyRequest = http.HandlerFunc(func(w http.ResponseWriter, _ *http.Request) {
 	http.Error(w, "AWSMocker is meant to be used as a proxy server. Don't send requests directly to it.", http.StatusNotImplemented)
 })

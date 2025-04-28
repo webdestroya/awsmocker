@@ -27,7 +27,7 @@ func jmesValueNormalize(value any) any {
 	// 	return v
 	// }
 	switch v := value.(type) {
-	case string, bool, nil, float64:
+	case string, bool, float64:
 		return v
 	case int:
 		return float64(v)

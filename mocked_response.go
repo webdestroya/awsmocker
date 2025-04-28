@@ -179,26 +179,27 @@ func (m *MockedResponse) getResponse(rr *ReceivedRequest) *httpResponse {
 					StatusCode:  m.StatusCode,
 					contentType: ContentTypeXML,
 				}
-			} else {
-				resultName := "" + actionName + "Result"
-				wrappedMap := map[string]interface{}{
-					resultName: m.Body,
-					"ResponseMetadata": map[string]string{
-						"RequestId": "01234567-89ab-cdef-0123-456789abcdef",
-					},
-				}
-
-				xmlout, err := mxj.AnyXmlIndent(wrappedMap, "", "  ", ""+actionName+"Response")
-				if err != nil {
-					return generateErrorStruct(0, "BadMockBody", "Could not serialize body to XML: %s", err).getResponse(rr)
-				}
-
-				return &httpResponse{
-					bodyRaw:     xmlout,
-					StatusCode:  m.StatusCode,
-					contentType: ContentTypeXML,
-				}
 			}
+
+			resultName := "" + actionName + "Result"
+			wrappedMap := map[string]any{
+				resultName: m.Body,
+				"ResponseMetadata": map[string]string{
+					"RequestId": "01234567-89ab-cdef-0123-456789abcdef",
+				},
+			}
+
+			xmlout, err := mxj.AnyXmlIndent(wrappedMap, "", "  ", ""+actionName+"Response")
+			if err != nil {
+				return generateErrorStruct(0, "BadMockBody", "Could not serialize body to XML: %s", err).getResponse(rr)
+			}
+
+			return &httpResponse{
+				bodyRaw:     xmlout,
+				StatusCode:  m.StatusCode,
+				contentType: ContentTypeXML,
+			}
+
 		case bodyKind == reflect.Slice && rBody.Type() == byteArrayType:
 
 			cType := m.ContentType

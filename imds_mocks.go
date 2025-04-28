@@ -23,6 +23,8 @@ type IMDSMockOptions struct {
 	InstanceProfileName string
 }
 
+type IMDSMockOptionFunc = func(*IMDSMockOptions)
+
 func getDefaultImdsIdentityDocument() imds.InstanceIdentityDocument {
 	return imds.InstanceIdentityDocument{
 		Version:          "2017-09-30",
@@ -36,7 +38,7 @@ func getDefaultImdsIdentityDocument() imds.InstanceIdentityDocument {
 
 // Provides an array of mocks that will provide a decent replication of the
 // EC2 Instance Metadata Service
-func Mock_IMDS_Common(optFns ...func(*IMDSMockOptions)) []*MockedEndpoint {
+func Mock_IMDS_Common(optFns ...IMDSMockOptionFunc) []*MockedEndpoint {
 
 	cfg := IMDSMockOptions{
 		IdentityDocument:    getDefaultImdsIdentityDocument(),
@@ -143,7 +145,7 @@ func Mock_IMDS_IAM_Info(profileName string) *MockedEndpoint {
 		},
 		Response: &MockedResponse{
 			Encoding: ResponseEncodingJSON,
-			Body: map[string]interface{}{
+			Body: map[string]any{
 				"Code":               "Success",
 				"LastUpdated":        time.Now().UTC().Format(time.RFC3339),
 				"InstanceProfileArn": fmt.Sprintf("arn:aws:iam::%s:instance-profile/%s", DefaultAccountId, profileName),
@@ -175,7 +177,7 @@ func Mock_IMDS_IAM_Credentials(roleName string) *MockedEndpoint {
 		},
 		Response: &MockedResponse{
 			Encoding: ResponseEncodingJSON,
-			Body: map[string]interface{}{
+			Body: map[string]any{
 				"Code":            "Success",
 				"Type":            "AWS-HMAC",
 				"LastUpdated":     time.Now().UTC().Format(time.RFC3339),

@@ -88,6 +88,14 @@ func newReceivedRequest(req *http.Request) *ReceivedRequest {
 		}
 	}
 
+	if mhService := req.Header.Get(mwHeaderService); mhService != "" && recvreq.Service == "" {
+		recvreq.Service = mhService
+	}
+
+	if mhAction := req.Header.Get(mwHeaderOperation); mhAction != "" && recvreq.Action == "" {
+		recvreq.Action = mhAction
+	}
+
 	amzTarget := req.Header.Get("x-amz-target")
 	if amzTarget != "" {
 		// X-Amz-Target: AmazonEC2ContainerServiceV20141113.ListClusters

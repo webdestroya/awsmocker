@@ -7,8 +7,8 @@ import (
 	"strings"
 	"sync"
 
-	"golang.org/x/exp/maps"
-	"golang.org/x/exp/slices"
+	"maps"
+	"slices"
 )
 
 // Describes a request that should be matched

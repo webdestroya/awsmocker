@@ -20,6 +20,7 @@ func encodeAsXml(obj any) string {
 	return string(out)
 }
 
+// JSONifies the given object
 func EncodeAsJson(obj any) string {
 	out, err := json.Marshal(obj)
 	if err != nil {

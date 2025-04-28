@@ -2,7 +2,6 @@
 generate:
 	go generate ./...
 
-
 .PHONY: tidy
 tidy:
 	go mod verify
@@ -24,6 +23,10 @@ lint:
 		exit 1; \
 	}
 	@golangci-lint run && echo "All Good!"
+
+.PHONY: outdated
+outdated:
+	@go list -u -m -f '{{if not .Indirect}}{{if .Update}}{{.}}{{end}}{{end}}' all
 
 .PHONY: test-release
 test-release:

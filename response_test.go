@@ -13,13 +13,13 @@ import (
 
 func TestResponseDebugLogging(t *testing.T) {
 	info := awsmocker.Start(t, awsmocker.WithoutDefaultMocks(),
-		awsmocker.WithMock(&awsmocker.MockedEndpoint{
+		awsmocker.WithMocks(&awsmocker.MockedEndpoint{
 			Request: &awsmocker.MockedRequest{
 				Hostname: "httptest.com",
 			},
 			Response: awsmocker.MockResponse_Error(400, "SomeCode_HTTP", "SomeMessage"),
 		}),
-		awsmocker.WithMock(&awsmocker.MockedEndpoint{
+		awsmocker.WithMocks(&awsmocker.MockedEndpoint{
 			Request: &awsmocker.MockedRequest{
 				Hostname: "httpstest.com",
 			},

@@ -10,7 +10,7 @@ Easily create a proxy to allow easy testing of AWS API calls.
 
 > [!IMPORTANT]  
 > Version 1.0.0 has **BREAKING CHANGES**:
-> * You must use the `aws.Config` struct returned in your clients.
+> * You must use the AWS config from `Config()` function returned by `Start()`.
 > * The `Start` function has been modified to accept variable arguments for options setting
 
 If you find problems, please create an Issue or make a PR.
@@ -21,29 +21,16 @@ go get -u github.com/webdestroya/awsmocker
 ```
 
 ## Configuration
-The default configuration when passing `nil` will setup a few mocks for STS.
+The default configuration will setup a few mocks for STS.
 ```go
-awsmocker.Start(t, nil)
+m := awsmocker.Start(t)
 ```
 
 For advanced usage and adding other mocks, you can use the following options:
 
 ```go
-awsmocker.Start(t, &awsmocker.MockerOptions{
-  // parameters
-})
+m := awsmocker.Start(t, ...OPTIONS)
 ```
-
-| Option Key | Type | Description |
-| ----------- | ---- | ------ |
-| `Mocks` | `[]*MockedEndpoint` | A list of MockedEndpoints that will be matched against all incoming requests. |
-| `Timeout` | `time.Duration` | If provided, then requests that run longer than this will be terminated. Generally you should not need to set this |
-| `MockEc2Metadata` | `bool` | Set this to `true` and mocks for common EC2 IMDS endpoints will be added. These are not exhaustive, so if you have a special need you will have to add it. |
-| `SkipDefaultMocks` | `bool` | Setting this to true will prevent mocks for STS being added. Note: any mocks you add will be evaluated before the default mocks, so this option is generally not necessary. |
-| `ReturnAwsConfig` | `bool` | For many applications, the test suite will have the ability to pass a custom `aws.Config` value. If you have the ability to do this, you can bypass setting all the HTTP_PROXY environment variables. This makes your test cleaner. Setting this to true will add the `AwsConfig` value to the returned value of the Start call. |
-| `DoNotProxy` | `string` | Optional list of hostname globs that will be added to the `NO_PROXY` environment variable. These hostnames will bypass the mocker. Use this if you are making actual HTTP requests elsewhere in your code that you want to allow through. |
-| `DoNotFailUnhandledRequests` | `bool` | By default, if the mocker receives any request that does not have a matching mock, it will fail the test. This is usually desired as it prevents requests without error checking from allowing tests to pass. If you explicitly want a request to fail, you can define that. |
-| `DoNotOverrideCreds` | `bool` | This will stop the test mocker from overriding the AWS environment variables with fake values. This means if you do not properly configure the mocker, you could end up making real requests to AWS. This is not recommended. |
 
 ## Defining Mocks
 
@@ -52,6 +39,7 @@ awsmocker.Start(t, &awsmocker.MockerOptions{
   Request:  &awsmocker.MockedRequest{},
   Response: &awsmocker.MockedResponse{},
 }
+
 ```
 
 ### Mocking Requests
@@ -97,9 +85,7 @@ awsmocker.Start(t, &awsmocker.MockerOptions{
 
 ```go
 func TestSomethingThatCallsAws(t *testing.T) {
-  awsmocker.Start(t, &awsmocker.MockerOptions{
-    // List out the mocks
-    Mocks: []*awsmocker.MockedEndpoint{
+  m := awsmocker.Start(t, awsmocker.WithMocks(
       // Simple construction of a response
       awsmocker.NewSimpleMockedEndpoint("sts", "GetCallerIdentity", sts.GetCallerIdentityOutput{
         Account: aws.String("123456789012"),
@@ -108,7 +94,7 @@ func TestSomethingThatCallsAws(t *testing.T) {
       }),
 
       // advanced construction
-      {
+      &awsmocker.MockedEndpoint{
         Request: &awsmocker.MockedRequest{
           // specify the service/action to respond to
           Service: "ecs",
@@ -116,8 +102,8 @@ func TestSomethingThatCallsAws(t *testing.T) {
         },
         // provide the response to give
         Response: &awsmocker.MockedResponse{
-          Body: map[string]interface{}{
-            "services": []map[string]interface{}{
+          Body: map[string]any{
+            "services": []map[string]any{
               {
                 "serviceName": "someservice",
               },
@@ -125,12 +111,10 @@ func TestSomethingThatCallsAws(t *testing.T) {
           },
         },
       },
-    },
-  })
+    ),
+  )
 
-  cfg, _ := config.LoadDefaultConfig(context.TODO())
-
-  stsClient := sts.NewFromConfig(cfg)
+  stsClient := sts.NewFromConfig(m.Config())
 
   resp, err := stsClient.GetCallerIdentity(context.TODO(), nil)
   if err != nil {
@@ -159,7 +143,7 @@ func Mock_Events_PutRule_Generic() *awsmocker.MockedEndpoint {
 
         name, _ := jmespath.Search("Name", rr.JsonPayload)
 
-        return util.Must(util.Jsonify(map[string]interface{}{
+        return util.Must(util.Jsonify(map[string]any{
           "RuleArn": fmt.Sprintf("arn:aws:events:%s:%s:rule/%s", rr.Region, awsmocker.DefaultAccountId, name.(string)),
         }))
       },

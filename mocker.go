@@ -6,6 +6,8 @@ import (
 	"net/http"
 	"net/http/httptest"
 	"os"
+	"sync"
+	"sync/atomic"
 	"time"
 )
 
@@ -42,10 +44,16 @@ type mocker struct {
 	originalEnv map[string]*string
 
 	mocks []*MockedEndpoint
+
+	// counter used by the middleware to track requests
+	mwReqCounter *atomic.Uint64
+	requestLog   *sync.Map
 }
 
 func (m *mocker) init() {
 	m.originalEnv = make(map[string]*string, 10)
+	m.requestLog = &sync.Map{}
+	m.mwReqCounter = &atomic.Uint64{}
 }
 
 // Overrides an environment variable and then adds it to the stack to undo later
@@ -84,9 +92,6 @@ func (m *mocker) revertEnv() {
 }
 
 func (m *mocker) Start() {
-	// reset Go's proxy cache
-	// resetProxyConfig()
-
 	m.init()
 
 	m.t.Cleanup(m.Shutdown)
@@ -128,13 +133,9 @@ func (m *mocker) Start() {
 
 func (m *mocker) Shutdown() {
 	m.httpServer.Close()
+	m.requestLog.Clear()
 
 	m.revertEnv()
-
-	// reset Go's proxy cache
-	if !m.usingAwsConfig {
-		resetProxyConfig()
-	}
 }
 
 func (m *mocker) Logf(format string, args ...any) {

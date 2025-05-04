@@ -37,6 +37,9 @@ type ReceivedRequest struct {
 
 	// TBA: maybe in the future we'll add invalid request flagging, for now allow all types
 	// invalid bool
+
+	// internal reference to the mocker parent
+	mocker *mocker
 }
 
 func (rr *ReceivedRequest) Inspect() string {

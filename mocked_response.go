@@ -4,8 +4,10 @@ import (
 	"encoding/xml"
 	"net/http"
 	"reflect"
+	"strconv"
 	"strings"
 
+	"github.com/aws/smithy-go/document"
 	"github.com/clbanning/mxj"
 )
 
@@ -17,7 +19,12 @@ const (
 
 var (
 	byteArrayType = reflect.SliceOf(reflect.TypeOf((*byte)(nil)).Elem())
+	rrType        = reflect.TypeFor[*ReceivedRequest]()
+	errType       = reflect.TypeFor[error]()
 )
+
+// type used to generate
+type directTypeFunc = func(*ReceivedRequest) (any, error)
 
 type MockedResponse struct {
 	// modify the status code. default is 200
@@ -34,6 +41,9 @@ type MockedResponse struct {
 	// func(*ReceivedRequest) (string) = string payload (with 200 OK, inferred content type)
 	// func(*ReceivedRequest) (string, int) = string payload, <int> status code (with inferred content type)
 	// func(*ReceivedRequest) (string, int, string) = string payload, <int> status code, content type
+	// func(*ReceivedRequest) (*service.ACTIONOutput, error) = return the result type directly, or error
+	// func(*ReceivedRequest, *service.ACTIONInput) (*service.ACTIONOutput, error) = return the result type directly, or error
+	// func(*service.ACTIONInput) (*service.ACTIONOutput, error) = return the result type directly, or error
 	Body any
 
 	// Do not wrap the xml response in ACTIONResponse>ACTIONResult
@@ -76,6 +86,10 @@ func (m *MockedResponse) getResponse(rr *ReceivedRequest) *httpResponse {
 			StatusCode:  m.StatusCode,
 			contentType: m.ContentType,
 		}
+	}
+
+	if dir := m.processDirectRequest(rr); dir != nil {
+		return dir
 	}
 
 	actionName := m.action
@@ -215,4 +229,125 @@ func (m *MockedResponse) getResponse(rr *ReceivedRequest) *httpResponse {
 		}
 	}
 	return generateErrorStruct(0, "BadMockResponse", "Don't know how to encode a kind=%v using content type=%s", bodyKind, m.ContentType).getResponse(rr)
+}
+
+func (m *MockedResponse) processDirectRequest(rr *ReceivedRequest) *httpResponse {
+
+	if m.Body == nil {
+		return nil
+	}
+
+	body := m.Body
+	var err error
+
+	reqId, perr := strconv.ParseUint(rr.HttpRequest.Header.Get(mwHeaderRequestId), 10, 64)
+	if perr != nil {
+		return generateErrorStruct(0, "BadMockBody", "Failed to get direct mocker: %s", perr.Error()).getResponse(rr)
+
+	}
+
+	mkr := rr.mocker
+	if mkr == nil {
+		return generateErrorStruct(0, "BadMockBody", "Failed to get direct mocker").getResponse(rr)
+	}
+
+	entry, ok := mkr.requestLog.Load(reqId)
+	if !ok {
+		return generateErrorStruct(0, "BadMockBody", "Failed to find mock in DB??").getResponse(rr)
+	}
+
+	rec := entry.(mwDBEntry)
+
+	if !document.IsNoSerde(body) {
+
+		// check if fancy func
+		if fn, ok := body.(directTypeFunc); ok {
+			body, err = fn(rr)
+		} else {
+
+			body, err = processDirectRequestFunc(rec, rr, reflect.Indirect(reflect.ValueOf(body)))
+
+		}
+
+		if body != nil && !document.IsNoSerde(body) {
+			return nil
+		}
+	}
+
+	if body == nil && err == nil {
+		return nil
+	}
+
+	if reflect.TypeOf(body).Kind() == reflect.Struct {
+		val := reflect.ValueOf(body)
+		vp := reflect.New(val.Type())
+		vp.Elem().Set(val)
+		body = vp.Interface()
+	}
+
+	rec.Error = err
+	rec.Response = body
+
+	mkr.requestLog.Store(reqId, rec)
+
+	return &httpResponse{
+		StatusCode:  http.StatusOK,
+		Body:        "",
+		contentType: ContentTypeJSON,
+		extraHeaders: map[string]string{
+			mwHeaderUseDB: "true",
+		},
+	}
+}
+
+func processDirectRequestFunc(entry mwDBEntry, rr *ReceivedRequest, fnv reflect.Value) (any, error) {
+	typ := fnv.Type()
+	params := entry.Parameters
+	paramT := reflect.TypeOf(params)
+
+	inputs := make([]reflect.Value, 0, 2)
+
+	if typ.NumIn() == 1 {
+
+		in1 := typ.In(0)
+		if in1 == rrType {
+			inputs = append(inputs, reflect.ValueOf(rr))
+		} else if in1 == paramT {
+			inputs = append(inputs, reflect.ValueOf(params))
+		} else {
+			return nil, nil
+		}
+
+	} else if typ.NumIn() == 2 {
+		if in1 := typ.In(0); in1 == rrType {
+			inputs = append(inputs, reflect.ValueOf(rr))
+		} else {
+			return nil, nil
+		}
+
+		if in2 := typ.In(1); in2 == paramT {
+			inputs = append(inputs, reflect.ValueOf(params))
+		} else {
+			return nil, nil
+		}
+	} else {
+		// invalid signature
+		return nil, nil
+	}
+
+	if typ.NumOut() != 2 {
+		return nil, nil
+	}
+
+	outputs := fnv.Call(inputs)
+
+	ret := outputs[0].Interface()
+
+	if typ.NumOut() == 2 {
+		if err := outputs[1].Interface(); err != nil {
+			return ret, err.(error)
+		}
+	}
+
+	return ret, nil
 }

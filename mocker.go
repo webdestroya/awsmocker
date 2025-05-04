@@ -9,6 +9,8 @@ import (
 	"sync"
 	"sync/atomic"
 	"time"
+
+	"github.com/aws/aws-sdk-go-v2/aws"
 )
 
 const (
@@ -48,6 +50,10 @@ type mocker struct {
 	// counter used by the middleware to track requests
 	mwReqCounter *atomic.Uint64
 	requestLog   *sync.Map
+
+	awsConfig aws.Config
+
+	noMiddleware bool
 }
 
 func (m *mocker) init() {
@@ -100,23 +106,8 @@ func (m *mocker) Start() {
 		m.mocks[i].prep()
 	}
 
-	// if we are using aws config, then we don't need this
-	// if !m.usingAwsConfig {
-	// 	caBundlePath := path.Join(m.t.TempDir(), "awsmockcabundle.pem")
-	// 	err := writeCABundle(caBundlePath)
-	// 	if err != nil {
-	// 		m.t.Errorf("Failed to write CA Bundle: %s", err)
-	// 	}
-	// 	m.setEnv(envAwsCaBundle, caBundlePath)
-	// }
-
 	ts := httptest.NewServer(m)
 	m.httpServer = ts
-
-	// m.setEnv("HTTP_PROXY", ts.URL)
-	// m.setEnv("http_proxy", ts.URL)
-	// m.setEnv("HTTPS_PROXY", ts.URL)
-	// m.setEnv("https_proxy", ts.URL)
 
 	// m.setEnv(envAwsEc2MetaDisable, "true")
 	m.setEnv(envAwsDefaultRegion, DefaultRegion)
@@ -154,6 +145,7 @@ func (m *mocker) printf(format string, args ...any) {
 
 func (m *mocker) handleRequest(req *http.Request) (*http.Request, *http.Response) {
 	recvReq := newReceivedRequest(req)
+	recvReq.mocker = m
 
 	// if recvReq.invalid {
 	// 	recvReq.DebugDump()

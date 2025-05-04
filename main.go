@@ -1,6 +1,7 @@
 package awsmocker
 
-func Start(t TestingT, optFns ...MockerOptionFunc) *MockerInfo {
+// Start the mocker
+func Start(t TestingT, optFns ...MockerOptionFunc) MockerInfo {
 
 	if h, ok := t.(tHelper); ok {
 		h.Helper()
@@ -17,14 +18,6 @@ func Start(t TestingT, optFns ...MockerOptionFunc) *MockerInfo {
 		optFn(options)
 	}
 
-	// if options.Timeout == 0 {
-	// 	options.Timeout = 5 * time.Second
-	// }
-
-	// if !options.SkipDefaultMocks {
-	// 	options.Mocks = append(options.Mocks, MockStsGetCallerIdentityValid)
-	// }
-
 	mocks := make([]*MockedEndpoint, 0, len(options.Mocks))
 	for i := range options.Mocks {
 		if options.Mocks[i] == nil {
@@ -40,17 +33,13 @@ func Start(t TestingT, optFns ...MockerOptionFunc) *MockerInfo {
 		debugTraffic:       getDebugMode(), // options.DebugTraffic,
 		doNotOverrideCreds: options.DoNotOverrideCreds,
 		doNotFailUnhandled: options.DoNotFailUnhandledRequests,
+		noMiddleware:       options.noMiddleware,
 		mocks:              mocks,
 		usingAwsConfig:     true,
 	}
 	server.Start()
 
-	cfg := server.buildAwsConfig(options.AwsConfigOptions...)
+	server.awsConfig = server.buildAwsConfig(options.AwsConfigOptions...)
 
-	info := &MockerInfo{
-		ProxyURL:  server.httpServer.URL,
-		awsConfig: &cfg,
-	}
-
-	return info
+	return server
 }

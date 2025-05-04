@@ -9,30 +9,36 @@ import (
 )
 
 // Returned when you start the server, provides you some information if needed
-type MockerInfo struct {
+type MockerInfo interface {
 	// URL of the proxy server
-	ProxyURL string
+	ProxyURL() string
+
+	Proxy() func(*http.Request) (*url.URL, error)
+
+	IMDSClient() *imds.Client
 
 	// Aws configuration to use
-	// Deprecated: use [Config] instead
-	awsConfig *aws.Config
+	Config() aws.Config
 }
 
-func (m MockerInfo) Config() aws.Config {
-	if m.awsConfig == nil {
-		panic("aws config was not setup properly")
-	}
-	return *m.awsConfig
+var _ MockerInfo = (*mocker)(nil)
+
+func (m mocker) Config() aws.Config {
+	return m.awsConfig
 }
 
 // Use this for custom proxy configurations
-func (m MockerInfo) Proxy() func(*http.Request) (*url.URL, error) {
-	uri, err := url.Parse(m.ProxyURL)
+func (m mocker) Proxy() func(*http.Request) (*url.URL, error) {
+	uri, err := url.Parse(m.ProxyURL())
 	return func(_ *http.Request) (*url.URL, error) {
 		return uri, err
 	}
 }
 
-func (m MockerInfo) IMDSClient() *imds.Client {
+func (m *mocker) ProxyURL() string {
+	return m.httpServer.URL
+}
+
+func (m mocker) IMDSClient() *imds.Client {
 	return imds.NewFromConfig(m.Config())
 }

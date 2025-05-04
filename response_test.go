@@ -30,7 +30,7 @@ func TestResponseDebugLogging(t *testing.T) {
 	client := &http.Client{
 		Transport: &http.Transport{
 			Proxy: func(r *http.Request) (*url.URL, error) {
-				return url.Parse(info.ProxyURL)
+				return url.Parse(info.ProxyURL())
 			},
 			TLSClientConfig: &tls.Config{
 				InsecureSkipVerify: true,

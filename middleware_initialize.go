@@ -26,8 +26,14 @@ func (m *mockerMiddleware) HandleInitialize(ctx context.Context, in middleware.I
 
 	reqId := m.mocker.mwReqCounter.Add(1)
 
-	ctx = withMWContextParam(ctx, in.Parameters)
-	ctx = middleware.WithStackValue(ctx, mwKeyReqId{}, reqId)
+	ctx = middleware.WithStackValue(ctx, mwCtxKeyReqId{}, reqId)
+	ctx = middleware.WithStackValue(ctx, mwCtxKeyParams{}, in.Parameters)
+
+	m.mocker.requestLog.Store(reqId, mwDBEntry{
+		Parameters: in.Parameters,
+	})
+
+	defer m.mocker.requestLog.Delete(reqId)
 
 	return next.HandleInitialize(ctx, in)
 }

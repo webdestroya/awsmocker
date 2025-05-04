@@ -30,6 +30,8 @@ type mockerOptions struct {
 	DoNotFailUnhandledRequests bool
 
 	AwsConfigOptions []AwsLoadOptionsFunc
+
+	noMiddleware bool
 }
 
 type MockerOptionFunc func(*mockerOptions)
@@ -72,6 +74,14 @@ func WithoutCredentialProtection() MockerOptionFunc {
 func WithoutFailingUnhandledRequests() MockerOptionFunc {
 	return func(o *mockerOptions) {
 		o.DoNotFailUnhandledRequests = true
+	}
+}
+
+// Skip installation of middleware in AWS Options
+// Use this if you have a very specific middleware need that the mocker interferes with.
+func WithoutMiddleware() MockerOptionFunc {
+	return func(o *mockerOptions) {
+		o.noMiddleware = true
 	}
 }
 

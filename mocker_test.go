@@ -67,6 +67,98 @@ func TestStsGetCallerIdentity_WithObj(t *testing.T) {
 	require.Equalf(t, awsmocker.DefaultAccountId, *resp.Account, "AccountID Mismatch")
 }
 
+func TestStsGetCallerIdentity_WithPointerObj(t *testing.T) {
+	m := awsmocker.Start(t, awsmocker.WithoutDefaultMocks(), awsmocker.WithMocks(&awsmocker.MockedEndpoint{
+		Request: &awsmocker.MockedRequest{
+			Service: "sts",
+			Action:  "GetCallerIdentity",
+		},
+		Response: &awsmocker.MockedResponse{
+			Body: &sts.GetCallerIdentityOutput{
+				Account: aws.String(awsmocker.DefaultAccountId),
+				Arn:     aws.String(fmt.Sprintf("arn:aws:iam::%s:user/fakeuser", awsmocker.DefaultAccountId)),
+				UserId:  aws.String("AKIAI44QH8DHBEXAMPLE"),
+			},
+		},
+	}),
+	)
+
+	stsClient := sts.NewFromConfig(m.Config())
+
+	resp, err := stsClient.GetCallerIdentity(context.TODO(), nil)
+	require.NoError(t, err)
+	require.Equalf(t, awsmocker.DefaultAccountId, *resp.Account, "AccountID Mismatch")
+}
+
+func TestStsGetCallerIdentity_WithFancyFuncs(t *testing.T) {
+	reqMock := func() *awsmocker.MockedRequest {
+		return &awsmocker.MockedRequest{
+			Service:       "sts",
+			Action:        "GetCallerIdentity",
+			MaxMatchCount: 1,
+		}
+	}
+
+	normalResp := &sts.GetCallerIdentityOutput{
+		Account: aws.String(awsmocker.DefaultAccountId),
+		Arn:     aws.String(fmt.Sprintf("arn:aws:iam::%s:user/fakeuser", awsmocker.DefaultAccountId)),
+		UserId:  aws.String("AKIAI44QH8DHBEXAMPLE"),
+	}
+
+	mocks := []*awsmocker.MockedEndpoint{
+		{
+			Request: reqMock(),
+			Response: &awsmocker.MockedResponse{
+				Body: func(_ *awsmocker.ReceivedRequest) (any, error) {
+					return *normalResp, nil
+				},
+			},
+		},
+		{
+			Request: reqMock(),
+			Response: &awsmocker.MockedResponse{
+				Body: func(_ *awsmocker.ReceivedRequest) (any, error) {
+					return normalResp, nil
+				},
+			},
+		},
+		{
+			Request: reqMock(),
+			Response: &awsmocker.MockedResponse{
+				Body: func(_ *awsmocker.ReceivedRequest) (*sts.GetCallerIdentityOutput, error) {
+					return normalResp, nil
+				},
+			},
+		},
+		{
+			Request: reqMock(),
+			Response: &awsmocker.MockedResponse{
+				Body: func(_ *awsmocker.ReceivedRequest, _ *sts.GetCallerIdentityInput) (*sts.GetCallerIdentityOutput, error) {
+					return normalResp, nil
+				},
+			},
+		},
+		{
+			Request: reqMock(),
+			Response: &awsmocker.MockedResponse{
+				Body: func(_ *sts.GetCallerIdentityInput) (*sts.GetCallerIdentityOutput, error) {
+					return normalResp, nil
+				},
+			},
+		},
+	}
+
+	m := awsmocker.Start(t, awsmocker.WithoutDefaultMocks(), awsmocker.WithMocks(mocks...))
+	stsClient := sts.NewFromConfig(m.Config())
+
+	for i := 0; i < len(mocks); i++ {
+
+		resp, err := stsClient.GetCallerIdentity(context.TODO(), nil)
+		require.NoError(t, err)
+		require.Equalf(t, awsmocker.DefaultAccountId, *resp.Account, "AccountID Mismatch")
+	}
+}
+
 func TestStsGetCallerIdentity_WithMap(t *testing.T) {
 	m := awsmocker.Start(t, awsmocker.WithoutDefaultMocks(), awsmocker.WithMocks(&awsmocker.MockedEndpoint{
 		Request: &awsmocker.MockedRequest{
@@ -275,7 +367,7 @@ func TestWithoutDefaultMocks(t *testing.T) {
 func TestSendingRegularRequestToProxy(t *testing.T) {
 	info := awsmocker.Start(t, nil)
 
-	resp, err := http.Get(info.ProxyURL + "/testing")
+	resp, err := http.Get(info.ProxyURL() + "/testing")
 	require.NoError(t, err)
 	defer resp.Body.Close()
 	require.Equal(t, http.StatusNotImplemented, resp.StatusCode)

@@ -166,5 +166,10 @@ To see the request/response traffic, you can use either of the following:
 * if you provide a response object, it will be encoded to JSON or XML based on the requesting content type. If you need a response in a special format, please provide the content type and a string for the body.
 * There is very little "error handling". If something goes wrong, it just panics. This might be less than ideal, but the only usecase for this library is within a test, which would make the test fail. This is the goal.
 
+## Possible Issues
+
+**Receiving error: "not found, ResolveEndpointV2"**:  
+Upgrade aws modules: `go get -u github.com/aws/aws-sdk-go-v2/...`
+
 ## See Also
 * Heavily influenced by [hashicorp's servicemocks](github.com/hashicorp/aws-sdk-go-base/v2/servicemocks)

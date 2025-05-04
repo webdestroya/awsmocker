@@ -1,6 +1,7 @@
 package awsmocker
 
 type mwDBEntry struct {
-	Response any
-	Error    error
+	Parameters any
+	Response   any
+	Error      error
 }

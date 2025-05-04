@@ -15,7 +15,11 @@ const (
 	mwHeaderUseDB     = `X-Awsmocker-Use-Db`
 )
 
-type mwKeyReqId struct{}
+type (
+	mwCtxKeyReqId  struct{}
+	mwCtxKeyParams struct{}
+	mwCtxKeyUseDB  struct{}
+)
 
 type (
 	mwRequest  = smithyhttp.Request
@@ -50,7 +54,7 @@ func addMiddlewareConfigOption(m *mocker) AwsLoadOptionsFunc {
 				return err
 			}
 
-			if err := stack.Deserialize.Add(mockerMW, middleware.After); err != nil {
+			if err := stack.Deserialize.Add(mockerMW, middleware.Before); err != nil {
 				return err
 			}
 

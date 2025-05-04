@@ -27,7 +27,6 @@ func (m *mocker) buildAwsConfig(opts ...AwsLoadOptionsFunc) aws.Config {
 
 	options := make([]AwsLoadOptionsFunc, 0, 15)
 
-	options = append(options, config.WithDefaultRegion(DefaultRegion))
 	options = append(options, config.WithDisableRequestCompression(aws.Bool(true)))
 	options = append(options, config.WithCredentialsProvider(credentials.NewStaticCredentialsProvider("XXfakekey", "XXfakesecret", "xxtoken")))
 	options = append(options, config.WithDefaultRegion(DefaultRegion))

@@ -2,8 +2,11 @@ package awsmocker
 
 import (
 	"maps"
+	"reflect"
 	"testing"
 
+	"github.com/aws/aws-sdk-go-v2/aws"
+	"github.com/aws/aws-sdk-go-v2/service/sts"
 	"github.com/stretchr/testify/require"
 )
 
@@ -48,6 +51,56 @@ func TestMockedResponse_getResponse(t *testing.T) {
 		t.Run(table.name, func(t *testing.T) {
 			hr := table.mr.getResponse(table.rr)
 			table.exp(t, hr)
+		})
+	}
+}
+
+func TestProcessDirectRequestFunc(t *testing.T) {
+
+	entry := mwDBEntry{
+		Parameters: &sts.GetCallerIdentityInput{},
+	}
+	rr := &ReceivedRequest{}
+
+	stsResponse := &sts.GetCallerIdentityOutput{
+		Account: aws.String(DefaultAccountId),
+		Arn:     aws.String("arn"),
+		UserId:  aws.String("userid"),
+	}
+
+	tables := []struct {
+		fn any
+	}{
+		{
+			fn: func(_ *sts.GetCallerIdentityInput) (*sts.GetCallerIdentityOutput, error) {
+				return stsResponse, nil
+			},
+		},
+
+		{
+			fn: func(_ *ReceivedRequest) (*sts.GetCallerIdentityOutput, error) {
+				return stsResponse, nil
+			},
+		},
+
+		{
+			fn: func(_ *ReceivedRequest, _ *sts.GetCallerIdentityInput) (*sts.GetCallerIdentityOutput, error) {
+				return stsResponse, nil
+			},
+		},
+
+		{
+			fn: func() *sts.GetCallerIdentityOutput {
+				return stsResponse
+			},
+		},
+	}
+
+	for _, table := range tables {
+		t.Run("entry", func(t *testing.T) {
+			result, err := processDirectRequestFunc(entry, rr, reflect.ValueOf(table.fn))
+			_ = result
+			_ = err
 		})
 	}
 }

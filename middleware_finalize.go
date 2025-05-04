@@ -18,11 +18,11 @@ func (mockerMiddleware) HandleFinalize(ctx context.Context, in middleware.Finali
 		req.Header.Add(mwHeaderService, strings.ToLower(middleware.GetServiceID(ctx)))
 		req.Header.Add(mwHeaderOperation, middleware.GetOperationName(ctx))
 
-		if params := getMWContextParam(ctx); params != nil {
+		if params := middleware.GetStackValue(ctx, mwCtxKeyParams{}); ok {
 			req.Header.Add(mwHeaderParamType, fmt.Sprintf("%T", params))
 		}
 
-		if reqId, ok := middleware.GetStackValue(ctx, mwKeyReqId{}).(uint64); ok {
+		if reqId, ok := middleware.GetStackValue(ctx, mwCtxKeyReqId{}).(uint64); ok {
 			req.Header.Add(mwHeaderRequestId, strconv.FormatUint(reqId, 10))
 		}
 

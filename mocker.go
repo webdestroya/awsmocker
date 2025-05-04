@@ -143,6 +143,11 @@ func (m *mocker) printf(format string, args ...any) {
 	m.t.Logf("[AWSMOCKER] "+format, args...)
 }
 
+func (m *mocker) Do(req *http.Request) (*http.Response, error) {
+	_, resp := m.handleRequest(req)
+	return resp, nil
+}
+
 func (m *mocker) handleRequest(req *http.Request) (*http.Request, *http.Response) {
 	recvReq := newReceivedRequest(req)
 	recvReq.mocker = m

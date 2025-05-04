@@ -240,6 +240,9 @@ func (m *MockedResponse) processDirectRequest(rr *ReceivedRequest) *httpResponse
 	body := m.Body
 	var err error
 
+	if rr.HttpRequest == nil || len(rr.HttpRequest.Header) == 0 {
+		return nil
+	}
 	reqId, perr := strconv.ParseUint(rr.HttpRequest.Header.Get(mwHeaderRequestId), 10, 64)
 	if perr != nil {
 		return generateErrorStruct(0, "BadMockBody", "Failed to get direct mocker: %s", perr.Error()).getResponse(rr)
@@ -302,6 +305,11 @@ func (m *MockedResponse) processDirectRequest(rr *ReceivedRequest) *httpResponse
 
 func processDirectRequestFunc(entry mwDBEntry, rr *ReceivedRequest, fnv reflect.Value) (any, error) {
 	typ := fnv.Type()
+
+	if typ.Kind() != reflect.Func {
+		return nil, nil
+	}
+
 	params := entry.Parameters
 	paramT := reflect.TypeOf(params)
 
@@ -336,6 +344,11 @@ func processDirectRequestFunc(entry mwDBEntry, rr *ReceivedRequest, fnv reflect.
 	}
 
 	if typ.NumOut() != 2 {
+		return nil, nil
+	}
+
+	if out2 := typ.Out(1); out2 != errType {
+		// 2nd return must be error
 		return nil, nil
 	}
 

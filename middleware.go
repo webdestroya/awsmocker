@@ -18,11 +18,11 @@ const (
 type (
 	mwCtxKeyReqId  struct{}
 	mwCtxKeyParams struct{}
-	mwCtxKeyUseDB  struct{}
+	mwCtxKeyUseDB  struct{} //nolint:unused
 )
 
 type (
-	mwRequest  = smithyhttp.Request
+	mwRequest  = smithyhttp.Request //nolint:unused
 	mwResponse = smithyhttp.Response
 )
 

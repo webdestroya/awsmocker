@@ -12,23 +12,23 @@ import (
 	"github.com/aws/aws-sdk-go-v2/aws"
 )
 
-const (
-	envAwsCaBundle       = "AWS_CA_BUNDLE"
-	envAwsAccessKey      = "AWS_ACCESS_KEY_ID"
-	envAwsSecretKey      = "AWS_SECRET_ACCESS_KEY"
-	envAwsSessionToken   = "AWS_SESSION_TOKEN"
-	envAwsEc2MetaDisable = "AWS_EC2_METADATA_DISABLED"
-	envAwsContCredUri    = "AWS_CONTAINER_CREDENTIALS_FULL_URI"
-	envAwsContCredRelUri = "AWS_CONTAINER_CREDENTIALS_RELATIVE_URI"
-	envAwsContAuthToken  = "AWS_CONTAINER_AUTHORIZATION_TOKEN"
-	envAwsConfigFile     = "AWS_CONFIG_FILE"
-	envAwsSharedCredFile = "AWS_SHARED_CREDENTIALS_FILE"
-	envAwsWebIdentTFile  = "AWS_WEB_IDENTITY_TOKEN_FILE"
-	envAwsDefaultRegion  = "AWS_DEFAULT_REGION"
+// const (
+// 	envAwsCaBundle       = "AWS_CA_BUNDLE"
+// 	envAwsAccessKey      = "AWS_ACCESS_KEY_ID"
+// 	envAwsSecretKey      = "AWS_SECRET_ACCESS_KEY"
+// 	envAwsSessionToken   = "AWS_SESSION_TOKEN"
+// 	envAwsEc2MetaDisable = "AWS_EC2_METADATA_DISABLED"
+// 	envAwsContCredUri    = "AWS_CONTAINER_CREDENTIALS_FULL_URI"
+// 	envAwsContCredRelUri = "AWS_CONTAINER_CREDENTIALS_RELATIVE_URI"
+// 	envAwsContAuthToken  = "AWS_CONTAINER_AUTHORIZATION_TOKEN"
+// 	envAwsConfigFile     = "AWS_CONFIG_FILE"
+// 	envAwsSharedCredFile = "AWS_SHARED_CREDENTIALS_FILE"
+// 	envAwsWebIdentTFile  = "AWS_WEB_IDENTITY_TOKEN_FILE"
+// 	envAwsDefaultRegion  = "AWS_DEFAULT_REGION"
 
-	// AWS_EC2_METADATA_SERVICE_ENDPOINT_MODE
-	// AWS_EC2_METADATA_SERVICE_ENDPOINT
-)
+// 	// AWS_EC2_METADATA_SERVICE_ENDPOINT_MODE
+// 	// AWS_EC2_METADATA_SERVICE_ENDPOINT
+// )
 
 type mocker struct {
 	t          TestingT

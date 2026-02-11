@@ -68,7 +68,7 @@ func JMESMatch(obj any, expression string, expected any) bool {
 
 	resp, err := jmespath.Search(expression, obj)
 	if err != nil {
-		panic(fmt.Errorf("Failed to parse expression: '%s': %w", expression, err))
+		panic(fmt.Errorf("failed to parse expression: '%s': %w", expression, err))
 	}
 
 	exp := jmesValueNormalize(expected)

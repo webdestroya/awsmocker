@@ -173,7 +173,7 @@ func (m *MockedRequest) matchRequestLazy(rr *ReceivedRequest) bool {
 		return false
 	}
 
-	if m.JMESPathMatches != nil && len(m.JMESPathMatches) > 0 {
+	if len(m.JMESPathMatches) > 0 {
 		if ret := m.matchJmespath(rr); !ret {
 			return false
 		}
@@ -183,9 +183,9 @@ func (m *MockedRequest) matchRequestLazy(rr *ReceivedRequest) bool {
 		return false
 	}
 
-	if m.Params != nil && len(m.Params) > 0 {
+	if len(m.Params) > 0 {
 		// if the request has no params, it cant match something with params...
-		if rr.HttpRequest.Form == nil || len(rr.HttpRequest.Form) == 0 {
+		if len(rr.HttpRequest.Form) == 0 {
 			return false
 		}
 
@@ -206,7 +206,7 @@ func (m *MockedRequest) matchRequestLazy(rr *ReceivedRequest) bool {
 
 func (m *MockedRequest) matchJmespath(rr *ReceivedRequest) bool {
 	// just bail out if there is nothing to match
-	if m.JMESPathMatches == nil || len(m.JMESPathMatches) == 0 {
+	if len(m.JMESPathMatches) == 0 {
 		return true
 	}
 

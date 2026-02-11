@@ -1,17 +1,15 @@
+version: "2"
+
 linters:
-  disable-all: true
+  default: none
   enable:
     - errcheck
-    - gofmt
-    - goimports
     - gosec
-    - gosimple
     - govet
     - ineffassign
     - misspell
     - prealloc
     - staticcheck
-    - typecheck
     - unconvert
     - unused
     - asciicheck
@@ -21,51 +19,55 @@ linters:
     - makezero
     - nonamedreturns
     - predeclared
+  settings:
+    depguard:
+      rules:
+        main:
+          deny:
+            - pkg: github.com/aws/aws-sdk-go/aws
+              desc: 'use v2 sdk instead'
+    gocritic:
+      disabled-checks:
+        - newDeref # it's wrong on generics
+    govet:
+      enable:
+        - shadow
+  exclusions:
+    rules:
+      - text: "Error return value of .((os\\.)?std(out|err)\\..*|.*Close|.*\\.Exit|.*Flush|os\\.Remove(All)?|.*printf?|fmt\\.Fprintln|os\\.(Un)?Setenv|io\\.WriteString|io\\.Copy). is not checked"
+        linters:
+          - errcheck
+      - text: 'declaration of "err"'
+        linters:
+          - govet
+      # it's all fake
+      - text: "G101" # G101: potential hard coded creds
+        linters:
+          - gosec
+      # yea, it's a test proxy. we're way beyond security
+      - text: "G402" # TLS InsecureSkipVerify set true
+        linters:
+          - gosec
+      # it's used for a serial number
+      - text: "G404" # G404: Use of weak random number generator (math/rand instead of crypto/rand)
+        linters:
+          - gosec
+      - text: "QF1001"
+        linters:
+          - staticcheck
+      - text: "QF1003"
+        linters:
+          - staticcheck
+    paths:
+      - scripts
 
-issues:
-  exclude:
-    - "Error return value of .((os\\.)?std(out|err)\\..*|.*Close|.*\\.Exit|.*Flush|os\\.Remove(All)?|.*printf?|os\\.(Un)?Setenv|io\\.WriteString|io\\.Copy). is not checked"
-    - 'declaration of "err"'
-  exclude-rules:
+formatters:
+  enable:
+    - gofmt
+    - goimports
 
-    # it's all fake
-    - text: "G101" # G101: potential hard coded creds
-      linters:
-        - gosec
-    
-    # yea, it's a test proxy. we're way beyond security
-    - text: "G402" # TLS InsecureSkipVerify set true
-      linters:
-        - gosec
-
-    # it's used for a serial number
-    - text: "G404" # G404: Use of weak random number generator (math/rand instead of crypto/rand)
-      linters:
-        - gosec
-
-
-# output configuration options
 output:
-  format: 'colored-line-number'
-  print-issued-lines: true
-  print-linter-name: true
-
-linters-settings:
-  depguard:
-    list-type: denylist
-    packages:
-      - github.com/aws/aws-sdk-go/aws
-    packages-with-error-message:
-      - github.com/aws/aws-sdk-go/aws: 'use v2 sdk instead'
-
-  gocritic:
-    disabled-checks:
-      - newDeref # it's wrong on generics
-
-  govet:
-    check-shadowing: true
-    # enable-all: true
-
-run:
-  skip-dirs:
-    - scripts
+  formats:
+    text:
+      print-issued-lines: true
+      print-linter-name: true

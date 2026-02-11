@@ -152,7 +152,7 @@ func (r *ReceivedRequest) DebugDump() {
 	if len(r.RawBody) > 0 {
 		fmt.Fprintln(buf, "BODY:")
 		fmt.Fprintln(buf, string(r.RawBody))
-	} else if r.HttpRequest.Form != nil && len(r.HttpRequest.Form) > 0 {
+	} else if len(r.HttpRequest.Form) > 0 {
 		fmt.Fprintln(buf, "PARAMS:")
 		for k, vlist := range r.HttpRequest.Form {
 			for _, v := range vlist {

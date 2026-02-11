@@ -47,6 +47,7 @@ func TestReceivedRequest_DebugDump(t *testing.T) {
 	require.Contains(t, debugStr, "AWSMOCKER RESPONSE:")
 	require.Contains(t, debugStr, "POST")
 	require.Contains(t, debugStr, "ecs.us-east-1.amazonaws.com")
+	require.Contains(t, debugStr, "service=ecs")
 	require.Contains(t, debugStr, "ListClusters")
 
 }

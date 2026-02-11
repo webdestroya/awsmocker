@@ -13,8 +13,10 @@ type MockerInfo interface {
 	// URL of the proxy server
 	ProxyURL() string
 
+	// Returns a function that can be used in [http.Transport]
 	Proxy() func(*http.Request) (*url.URL, error)
 
+	// Preconfigured IMDS client
 	IMDSClient() *imds.Client
 
 	// Aws configuration to use
@@ -36,9 +38,16 @@ func (m mocker) Proxy() func(*http.Request) (*url.URL, error) {
 }
 
 func (m *mocker) ProxyURL() string {
+	m.startServer()
 	return m.httpServer.URL
 }
 
 func (m mocker) IMDSClient() *imds.Client {
 	return imds.NewFromConfig(m.Config())
+}
+
+// returns a preconfigured HTTP client. This will automatically use the proper proxy.
+func (m *mocker) HTTPClient() *http.Client {
+	m.startServer()
+	return m.httpServer.Client()
 }

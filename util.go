@@ -64,3 +64,12 @@ func isAwsHostname(hostname string) bool {
 	return false
 }
 */
+
+func coalesceString(vals ...string) string {
+	for _, v := range vals {
+		if v != "" {
+			return v
+		}
+	}
+	return ""
+}

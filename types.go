@@ -3,6 +3,7 @@ package awsmocker
 import (
 	"net"
 	"net/http"
+	"testing"
 
 	"github.com/aws/aws-sdk-go-v2/config"
 )
@@ -26,6 +27,11 @@ type TestingT interface {
 	// FailNow()
 	// Fatalf(format string, args ...any)
 }
+
+var (
+	_ TestingT = (*testing.T)(nil)
+	_ TestingT = (*testing.B)(nil)
+)
 
 type tHelper interface {
 	Helper()

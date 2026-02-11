@@ -14,13 +14,13 @@ import (
 )
 
 var (
-	globalCertStore *CertStorage
+	globalCertStore *certStorage
 
 	leafCertStart = time.Unix(time.Now().Unix()-2592000, 0) // 2592000  = 30 day
 	leafCertEnd   = time.Unix(time.Now().Unix()+31536000, 0)
 )
 
-type CertStorage struct {
+type certStorage struct {
 	certs sync.Map
 
 	mu sync.Mutex
@@ -29,7 +29,7 @@ type CertStorage struct {
 	privateKey *rsa.PrivateKey
 }
 
-func (tcs *CertStorage) Fetch(hostname string) *tls.Certificate {
+func (tcs *certStorage) Fetch(hostname string) *tls.Certificate {
 
 	icert, ok := tcs.certs.Load(hostname)
 	if ok {
@@ -40,7 +40,7 @@ func (tcs *CertStorage) Fetch(hostname string) *tls.Certificate {
 	return tcs.generateCert(hostname)
 }
 
-func (tcs *CertStorage) generateCert(hostname string) *tls.Certificate {
+func (tcs *certStorage) generateCert(hostname string) *tls.Certificate {
 
 	tcs.mu.Lock()
 	defer tcs.mu.Unlock()
@@ -92,7 +92,7 @@ func init() {
 	privKey, _ := rsa.GenerateKey(rand.Reader, 2048)
 	startSerial, _ := rand.Int(rand.Reader, big.NewInt(int64(math.Pow(2, 40))))
 
-	globalCertStore = &CertStorage{
+	globalCertStore = &certStorage{
 		certs:      sync.Map{},
 		privateKey: privKey,
 		nextSerial: startSerial.Int64(),

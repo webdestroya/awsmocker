@@ -79,6 +79,9 @@ func WithoutFailingUnhandledRequests() MockerOptionFunc {
 
 // Skip installation of middleware in AWS Options
 // Use this if you have a very specific middleware need that the mocker interferes with.
+//
+// WARNING: This will severely impair the mocker if you use typed requests/responses
+// you should probably fix the issue with using the middleware instead.
 func WithoutMiddleware() MockerOptionFunc {
 	return func(o *mockerOptions) {
 		o.noMiddleware = true

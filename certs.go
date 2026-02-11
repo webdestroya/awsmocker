@@ -4,7 +4,6 @@ import (
 	"crypto/tls"
 	"crypto/x509"
 	_ "embed"
-	"os"
 )
 
 //go:embed cacert.pem
@@ -37,9 +36,10 @@ func CACertPEM() []byte {
 
 // Returns the parsed X509 Certificate
 func CACert() *x509.Certificate {
+	// sync.OnceValue()
 	return caKeyPair.Leaf
 }
 
-func writeCABundle(filePath string) error {
-	return os.WriteFile(filePath, caCert, 0o600)
-}
+// func writeCABundle(filePath string) error {
+// 	return os.WriteFile(filePath, caCert, 0o600)
+// }

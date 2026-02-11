@@ -35,7 +35,7 @@ func Start(t TestingT, optFns ...MockerOptionFunc) MockerInfo {
 		doNotFailUnhandled: options.DoNotFailUnhandledRequests,
 		noMiddleware:       options.noMiddleware,
 		mocks:              mocks,
-		usingAwsConfig:     true,
+		// usingAwsConfig:     true,
 	}
 	server.Start()
 

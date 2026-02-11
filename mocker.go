@@ -5,7 +5,6 @@ import (
 	"fmt"
 	"net/http"
 	"net/http/httptest"
-	"os"
 	"sync"
 	"sync/atomic"
 	"time"
@@ -39,11 +38,11 @@ type mocker struct {
 	verbose      bool
 	debugTraffic bool
 
-	usingAwsConfig     bool
+	// usingAwsConfig     bool
 	doNotOverrideCreds bool
 	doNotFailUnhandled bool
 
-	originalEnv map[string]*string
+	// originalEnv map[string]*string
 
 	mocks []*MockedEndpoint
 
@@ -57,45 +56,46 @@ type mocker struct {
 }
 
 func (m *mocker) init() {
-	m.originalEnv = make(map[string]*string, 10)
+	// m.originalEnv = make(map[string]*string, 10)
 	m.requestLog = &sync.Map{}
 	m.mwReqCounter = &atomic.Uint64{}
 }
 
 // Overrides an environment variable and then adds it to the stack to undo later
-func (m *mocker) setEnv(k string, v any) {
-	val, ok := os.LookupEnv(k)
-	if ok {
-		m.originalEnv[k] = &val
-	} else {
-		m.originalEnv[k] = nil
-	}
+// func (m *mocker) setEnv(k string, v any) {
+// 	return
+// 	val, ok := os.LookupEnv(k)
+// 	if ok {
+// 		m.originalEnv[k] = &val
+// 	} else {
+// 		m.originalEnv[k] = nil
+// 	}
 
-	switch nval := v.(type) {
-	case string:
-		err := os.Setenv(k, nval)
-		if err != nil {
-			m.t.Errorf("Unable to set env var '%s': %s", k, err)
-		}
-	case nil:
-		err := os.Unsetenv(k)
-		if err != nil {
-			m.t.Errorf("Unable to unset env var '%s': %s", k, err)
-		}
-	default:
-		panic("WRONG ENV VAR VALUE TYPE: must be nil or a string")
-	}
-}
+// 	switch nval := v.(type) {
+// 	case string:
+// 		err := os.Setenv(k, nval)
+// 		if err != nil {
+// 			m.t.Errorf("Unable to set env var '%s': %s", k, err)
+// 		}
+// 	case nil:
+// 		err := os.Unsetenv(k)
+// 		if err != nil {
+// 			m.t.Errorf("Unable to unset env var '%s': %s", k, err)
+// 		}
+// 	default:
+// 		panic("WRONG ENV VAR VALUE TYPE: must be nil or a string")
+// 	}
+// }
 
-func (m *mocker) revertEnv() {
-	for k, v := range m.originalEnv {
-		if v == nil {
-			_ = os.Unsetenv(k)
-		} else {
-			_ = os.Setenv(k, *v)
-		}
-	}
-}
+// func (m *mocker) revertEnv() {
+// 	for k, v := range m.originalEnv {
+// 		if v == nil {
+// 			_ = os.Unsetenv(k)
+// 		} else {
+// 			_ = os.Setenv(k, *v)
+// 		}
+// 	}
+// }
 
 func (m *mocker) Start() {
 	m.init()
@@ -106,27 +106,36 @@ func (m *mocker) Start() {
 		m.mocks[i].prep()
 	}
 
-	ts := httptest.NewServer(m)
-	m.httpServer = ts
+	// ts := httptest.NewServer(m)
+	// m.httpServer = ts
 
 	// m.setEnv(envAwsEc2MetaDisable, "true")
-	m.setEnv(envAwsDefaultRegion, DefaultRegion)
+	// m.setEnv(envAwsDefaultRegion, DefaultRegion)
 
-	if !m.doNotOverrideCreds {
-		m.setEnv(envAwsAccessKey, "fakekey")
-		m.setEnv(envAwsSecretKey, "fakesecret")
-		m.setEnv(envAwsSessionToken, "faketoken")
-		m.setEnv(envAwsConfigFile, "fakeconffile")
-		m.setEnv(envAwsSharedCredFile, "fakesharedfile")
-	}
+	// if !m.doNotOverrideCreds {
+	// 	m.setEnv(envAwsAccessKey, "fakekey")
+	// 	m.setEnv(envAwsSecretKey, "fakesecret")
+	// 	m.setEnv(envAwsSessionToken, "faketoken")
+	// 	m.setEnv(envAwsConfigFile, "fakeconffile")
+	// 	m.setEnv(envAwsSharedCredFile, "fakesharedfile")
+	// }
 
 }
 
 func (m *mocker) Shutdown() {
-	m.httpServer.Close()
+	if m.httpServer != nil {
+		m.httpServer.Close()
+	}
 	m.requestLog.Clear()
 
-	m.revertEnv()
+	// m.revertEnv()
+}
+
+func (m *mocker) startServer() {
+	if m.httpServer != nil {
+		return
+	}
+	m.httpServer = httptest.NewServer(m)
 }
 
 func (m *mocker) Logf(format string, args ...any) {
@@ -143,7 +152,7 @@ func (m *mocker) printf(format string, args ...any) {
 	m.t.Logf("[AWSMOCKER] "+format, args...)
 }
 
-func (m *mocker) Do(req *http.Request) (*http.Response, error) {
+func (m *mocker) RoundTrip(req *http.Request) (*http.Response, error) {
 	_, resp := m.handleRequest(req)
 	return resp, nil
 }

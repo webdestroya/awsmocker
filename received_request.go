@@ -61,9 +61,14 @@ func newReceivedRequest(req *http.Request) *ReceivedRequest {
 
 	_ = req.ParseForm()
 
-	bodyBytes, err := io.ReadAll(req.Body)
-	if err == nil {
-		recvreq.RawBody = bodyBytes
+	var bodyBytes []byte
+
+	if req.Body != nil {
+		bb, err := io.ReadAll(req.Body)
+		bodyBytes = bb
+		if err == nil {
+			recvreq.RawBody = bodyBytes
+		}
 	}
 
 	reqContentType := req.Header.Get("content-type")
@@ -79,8 +84,7 @@ func newReceivedRequest(req *http.Request) *ReceivedRequest {
 
 	}
 
-	authHeader := req.Header.Get("authorization")
-	if authHeader != "" {
+	if authHeader := req.Header.Get("authorization"); authHeader != "" {
 		matches := credExtractRegexp.FindStringSubmatch(authHeader)
 		if len(matches) > 1 {
 			// 0       1         2      3    4
@@ -89,14 +93,6 @@ func newReceivedRequest(req *http.Request) *ReceivedRequest {
 			recvreq.Region = parts[2]
 			recvreq.Service = parts[3]
 		}
-	}
-
-	if mhService := req.Header.Get(mwHeaderService); mhService != "" && recvreq.Service == "" {
-		recvreq.Service = mhService
-	}
-
-	if mhAction := req.Header.Get(mwHeaderOperation); mhAction != "" && recvreq.Action == "" {
-		recvreq.Action = mhAction
 	}
 
 	amzTarget := req.Header.Get("x-amz-target")
@@ -114,6 +110,14 @@ func newReceivedRequest(req *http.Request) *ReceivedRequest {
 
 	if recvreq.AssumedResponseType == ContentTypeText && recvreq.Action != "" && recvreq.Service != "" && reqContentType == "application/x-www-form-urlencoded" {
 		recvreq.AssumedResponseType = ContentTypeXML
+	}
+
+	if mhService := req.Header.Get(mwHeaderService); mhService != "" && recvreq.Service == "" {
+		recvreq.Service = mhService
+	}
+
+	if mhAction := req.Header.Get(mwHeaderOperation); mhAction != "" && recvreq.Action == "" {
+		recvreq.Action = mhAction
 	}
 
 	// if recvreq.Action == "" {
@@ -135,8 +139,8 @@ func (r *ReceivedRequest) DebugDump() {
 		fmt.Fprintf(buf, "Operation: %s (service=%s @ %s)\n", r.Action, r.Service, r.Region)
 	}
 
-	fmt.Fprintf(buf, "%s %s\n", r.HttpRequest.Method, r.HttpRequest.RequestURI)
-	fmt.Fprintf(buf, "Host: %s\n", r.HttpRequest.Host)
+	fmt.Fprintf(buf, "%s %s\n", r.HttpRequest.Method, coalesceString(r.HttpRequest.RequestURI, r.Path))
+	fmt.Fprintf(buf, "Host: %s\n", coalesceString(r.HttpRequest.Host, r.Hostname))
 	for k, vlist := range r.HttpRequest.Header {
 		for _, v := range vlist {
 			fmt.Fprintf(buf, "%s: %s\n", k, v)

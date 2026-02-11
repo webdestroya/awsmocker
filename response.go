@@ -62,7 +62,7 @@ func (hr *httpResponse) toHttpResponse(req *http.Request) *http.Response {
 	resp.Header.Add("Content-Type", hr.contentType)
 	resp.Header.Add("Server", "AWSMocker")
 
-	if hr.extraHeaders != nil && len(hr.extraHeaders) > 0 {
+	if len(hr.extraHeaders) > 0 {
 		for k, v := range hr.extraHeaders {
 			resp.Header.Set(k, v)
 		}

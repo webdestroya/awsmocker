@@ -12,11 +12,9 @@ import (
 )
 
 func TestEc2IMDS(t *testing.T) {
-	awsmocker.Start(t, &awsmocker.MockerOptions{
-		MockEc2Metadata: true,
-	})
+	m := awsmocker.Start(t, awsmocker.WithEC2Metadata())
 
-	client := imds.NewFromConfig(testutil.GetAwsConfig())
+	client := imds.NewFromConfig(m.Config())
 
 	ctx := context.TODO()
 
@@ -42,7 +40,9 @@ func TestEc2IMDS(t *testing.T) {
 	})
 
 	t.Run("iam creds", func(t *testing.T) {
-		provider := ec2rolecreds.New()
+		provider := ec2rolecreds.New(func(o *ec2rolecreds.Options) {
+			o.Client = m.IMDSClient()
+		})
 		creds, err := provider.Retrieve(ctx)
 		require.NoError(t, err)
 

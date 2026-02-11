@@ -20,6 +20,7 @@ func encodeAsXml(obj any) string {
 	return string(out)
 }
 
+// JSONifies the given object
 func EncodeAsJson(obj any) string {
 	out, err := json.Marshal(obj)
 	if err != nil {
@@ -63,3 +64,12 @@ func isAwsHostname(hostname string) bool {
 	return false
 }
 */
+
+func coalesceString(vals ...string) string {
+	for _, v := range vals {
+		if v != "" {
+			return v
+		}
+	}
+	return ""
+}

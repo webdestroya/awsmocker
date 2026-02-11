@@ -1,57 +1,21 @@
 package awsmocker
 
-import (
-	"os"
-	"time"
-
-	"github.com/aws/aws-sdk-go-v2/aws"
-)
-
-// Returned when you start the server, provides you some information if needed
-type MockerInfo struct {
-	// URL of the proxy server
-	ProxyURL string
-
-	// Aws configuration to use
-	// This is only provided if you gave ReturnAwsConfig in the options
-	AwsConfig *aws.Config
-}
-
-func Start(t TestingT, options *MockerOptions) *MockerInfo {
+// Start the mocker
+func Start(t TestingT, optFns ...MockerOptionFunc) MockerInfo {
 
 	if h, ok := t.(tHelper); ok {
 		h.Helper()
 	}
 
-	if options == nil {
-		options = &MockerOptions{}
-	}
+	options := newOptions()
 
-	if options.Timeout == 0 {
-		options.Timeout = 5 * time.Second
-	}
+	for _, optFn := range optFns {
 
-	if !options.SkipDefaultMocks {
-		options.Mocks = append(options.Mocks, MockStsGetCallerIdentityValid)
-	}
-
-	if options.MockEc2Metadata {
-		options.Mocks = append(options.Mocks, Mock_IMDS_Common()...)
-	}
-
-	// proxy bypass configuration
-	if options.DoNotProxy != "" {
-		noProxyStr := os.Getenv("NO_PROXY")
-		if noProxyStr == "" {
-			noProxyStr = os.Getenv("no_proxy")
+		// makes transitioning somewhat easier
+		if optFn == nil {
+			continue
 		}
-		if noProxyStr != "" {
-			noProxyStr += ","
-		}
-		noProxyStr += options.DoNotProxy
-
-		t.Setenv("NO_PROXY", noProxyStr)
-		t.Setenv("no_proxy", noProxyStr)
+		optFn(options)
 	}
 
 	mocks := make([]*MockedEndpoint, 0, len(options.Mocks))
@@ -69,19 +33,13 @@ func Start(t TestingT, options *MockerOptions) *MockerInfo {
 		debugTraffic:       getDebugMode(), // options.DebugTraffic,
 		doNotOverrideCreds: options.DoNotOverrideCreds,
 		doNotFailUnhandled: options.DoNotFailUnhandledRequests,
+		noMiddleware:       options.noMiddleware,
 		mocks:              mocks,
-		usingAwsConfig:     options.ReturnAwsConfig,
+		// usingAwsConfig:     true,
 	}
 	server.Start()
 
-	info := &MockerInfo{
-		ProxyURL: server.httpServer.URL,
-	}
+	server.awsConfig = server.buildAwsConfig(options.AwsConfigOptions...)
 
-	if options.ReturnAwsConfig {
-		cfg := server.buildAwsConfig()
-		info.AwsConfig = &cfg
-	}
-
-	return info
+	return server
 }

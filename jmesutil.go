@@ -27,7 +27,7 @@ func jmesValueNormalize(value any) any {
 	// 	return v
 	// }
 	switch v := value.(type) {
-	case string, bool, nil, float64:
+	case string, bool, float64:
 		return v
 	case int:
 		return float64(v)
@@ -68,7 +68,7 @@ func JMESMatch(obj any, expression string, expected any) bool {
 
 	resp, err := jmespath.Search(expression, obj)
 	if err != nil {
-		panic(fmt.Errorf("Failed to parse expression: '%s': %w", expression, err))
+		panic(fmt.Errorf("failed to parse expression: '%s': %w", expression, err))
 	}
 
 	exp := jmesValueNormalize(expected)

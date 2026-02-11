@@ -1,0 +1,5 @@
+{
+  "go.testEnvVars": {
+    "AWSMOCKER_DEBUG": "1",
+  }
+}

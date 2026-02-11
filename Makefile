@@ -2,7 +2,6 @@
 generate:
 	go generate ./...
 
-
 .PHONY: tidy
 tidy:
 	go mod verify
@@ -15,7 +14,7 @@ tidy:
 .PHONY: lint-install
 lint-install:
 	@echo "Installing golangci-lint"
-	go install github.com/golangci/golangci-lint/cmd/golangci-lint@v1.46.2
+	go install github.com/golangci/golangci-lint/cmd/golangci-lint@v2.9.0
 
 .PHONY: lint
 lint:
@@ -24,6 +23,10 @@ lint:
 		exit 1; \
 	}
 	@golangci-lint run && echo "All Good!"
+
+.PHONY: outdated
+outdated:
+	@go list -u -m -f '{{if not .Indirect}}{{if .Update}}{{.}}{{end}}{{end}}' all
 
 .PHONY: test-release
 test-release:

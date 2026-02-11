@@ -21,6 +21,7 @@ func (m *MockedEndpoint) getResponse(rr *ReceivedRequest) *httpResponse {
 	return m.Response.getResponse(rr)
 }
 
+// Generates a simple [MockedEndpoint] for the Service:Action
 func NewSimpleMockedEndpoint(service, action string, responseObj any) *MockedEndpoint {
 	return &MockedEndpoint{
 		Request: &MockedRequest{

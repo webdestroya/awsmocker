@@ -2,7 +2,6 @@ package awsmocker_test
 
 import (
 	"context"
-	"crypto/tls"
 	"fmt"
 	"net/http"
 	"testing"
@@ -16,32 +15,26 @@ import (
 	"github.com/jmespath/go-jmespath"
 	"github.com/stretchr/testify/require"
 	"github.com/webdestroya/awsmocker"
-	"github.com/webdestroya/awsmocker/internal/testutil"
 )
 
 func TestEcsDescribeServices(t *testing.T) {
-	awsmocker.Start(t, &awsmocker.MockerOptions{
-		SkipDefaultMocks: true,
-		Mocks: []*awsmocker.MockedEndpoint{
-			{
-				Request: &awsmocker.MockedRequest{
-					Service: "ecs",
-					Action:  "DescribeServices",
-				},
-				Response: &awsmocker.MockedResponse{
-					Body: map[string]interface{}{
-						"services": []map[string]interface{}{
-							{
-								"serviceName": "someservice",
-							},
-						},
+	m := awsmocker.Start(t, awsmocker.WithoutDefaultMocks(), awsmocker.WithMocks(&awsmocker.MockedEndpoint{
+		Request: &awsmocker.MockedRequest{
+			Service: "ecs",
+			Action:  "DescribeServices",
+		},
+		Response: &awsmocker.MockedResponse{
+			Body: map[string]any{
+				"services": []map[string]any{
+					{
+						"serviceName": "someservice",
 					},
 				},
 			},
 		},
-	})
+	}))
 
-	client := ecs.NewFromConfig(testutil.GetAwsConfig())
+	client := ecs.NewFromConfig(m.Config())
 
 	resp, err := client.DescribeServices(context.TODO(), &ecs.DescribeServicesInput{
 		Services: []string{"someservice"},
@@ -52,52 +45,136 @@ func TestEcsDescribeServices(t *testing.T) {
 }
 
 func TestStsGetCallerIdentity_WithObj(t *testing.T) {
-	awsmocker.Start(t, &awsmocker.MockerOptions{
-		SkipDefaultMocks: true,
-		Mocks: []*awsmocker.MockedEndpoint{
-			{
-				Request: &awsmocker.MockedRequest{
-					Service: "sts",
-					Action:  "GetCallerIdentity",
-				},
-				Response: &awsmocker.MockedResponse{
-					Body: sts.GetCallerIdentityOutput{
-						Account: aws.String(awsmocker.DefaultAccountId),
-						Arn:     aws.String(fmt.Sprintf("arn:aws:iam::%s:user/fakeuser", awsmocker.DefaultAccountId)),
-						UserId:  aws.String("AKIAI44QH8DHBEXAMPLE"),
-					},
-				},
+	m := awsmocker.Start(t, awsmocker.WithoutDefaultMocks(), awsmocker.WithMocks(&awsmocker.MockedEndpoint{
+		Request: &awsmocker.MockedRequest{
+			Service: "sts",
+			Action:  "GetCallerIdentity",
+		},
+		Response: &awsmocker.MockedResponse{
+			Body: sts.GetCallerIdentityOutput{
+				Account: aws.String(awsmocker.DefaultAccountId),
+				Arn:     aws.String(fmt.Sprintf("arn:aws:iam::%s:user/fakeuser", awsmocker.DefaultAccountId)),
+				UserId:  aws.String("AKIAI44QH8DHBEXAMPLE"),
 			},
 		},
-	})
+	}),
+	)
 
-	stsClient := sts.NewFromConfig(testutil.GetAwsConfig())
+	stsClient := sts.NewFromConfig(m.Config())
 
 	resp, err := stsClient.GetCallerIdentity(context.TODO(), nil)
 	require.NoError(t, err)
 	require.Equalf(t, awsmocker.DefaultAccountId, *resp.Account, "AccountID Mismatch")
 }
 
-func TestStsGetCallerIdentity_WithMap(t *testing.T) {
-	awsmocker.Start(t, &awsmocker.MockerOptions{
-		SkipDefaultMocks: true,
-		Mocks: []*awsmocker.MockedEndpoint{
-			{
-				Request: &awsmocker.MockedRequest{
-					Service: "sts",
-					Action:  "GetCallerIdentity",
-				},
-				Response: &awsmocker.MockedResponse{
-					Body: map[string]interface{}{
-						"Account": awsmocker.DefaultAccountId,
-						"Arn":     fmt.Sprintf("arn:aws:iam::%s:user/fakeuser", awsmocker.DefaultAccountId),
-						"UserId":  "AKIAI44QH8DHBEXAMPLE",
-					},
+func TestStsGetCallerIdentity_WithPointerObj(t *testing.T) {
+	m := awsmocker.Start(t, awsmocker.WithoutDefaultMocks(), awsmocker.WithMocks(&awsmocker.MockedEndpoint{
+		Request: &awsmocker.MockedRequest{
+			Service: "sts",
+			Action:  "GetCallerIdentity",
+		},
+		Response: &awsmocker.MockedResponse{
+			Body: &sts.GetCallerIdentityOutput{
+				Account: aws.String(awsmocker.DefaultAccountId),
+				Arn:     aws.String(fmt.Sprintf("arn:aws:iam::%s:user/fakeuser", awsmocker.DefaultAccountId)),
+				UserId:  aws.String("AKIAI44QH8DHBEXAMPLE"),
+			},
+		},
+	}),
+	)
+
+	stsClient := sts.NewFromConfig(m.Config())
+
+	resp, err := stsClient.GetCallerIdentity(context.TODO(), nil)
+	require.NoError(t, err)
+	require.Equalf(t, awsmocker.DefaultAccountId, *resp.Account, "AccountID Mismatch")
+}
+
+func TestStsGetCallerIdentity_WithFancyFuncs(t *testing.T) {
+	reqMock := func() *awsmocker.MockedRequest {
+		return &awsmocker.MockedRequest{
+			Service:       "sts",
+			Action:        "GetCallerIdentity",
+			MaxMatchCount: 1,
+		}
+	}
+
+	normalResp := &sts.GetCallerIdentityOutput{
+		Account: aws.String(awsmocker.DefaultAccountId),
+		Arn:     aws.String(fmt.Sprintf("arn:aws:iam::%s:user/fakeuser", awsmocker.DefaultAccountId)),
+		UserId:  aws.String("AKIAI44QH8DHBEXAMPLE"),
+	}
+
+	mocks := []*awsmocker.MockedEndpoint{
+		{
+			Request: reqMock(),
+			Response: &awsmocker.MockedResponse{
+				Body: func(_ *awsmocker.ReceivedRequest) (any, error) {
+					return *normalResp, nil
 				},
 			},
 		},
-	})
-	stsClient := sts.NewFromConfig(testutil.GetAwsConfig())
+		{
+			Request: reqMock(),
+			Response: &awsmocker.MockedResponse{
+				Body: func(_ *awsmocker.ReceivedRequest) (any, error) {
+					return normalResp, nil
+				},
+			},
+		},
+		{
+			Request: reqMock(),
+			Response: &awsmocker.MockedResponse{
+				Body: func(_ *awsmocker.ReceivedRequest) (*sts.GetCallerIdentityOutput, error) {
+					return normalResp, nil
+				},
+			},
+		},
+		{
+			Request: reqMock(),
+			Response: &awsmocker.MockedResponse{
+				Body: func(_ *awsmocker.ReceivedRequest, _ *sts.GetCallerIdentityInput) (*sts.GetCallerIdentityOutput, error) {
+					return normalResp, nil
+				},
+			},
+		},
+		{
+			Request: reqMock(),
+			Response: &awsmocker.MockedResponse{
+				Body: func(_ *sts.GetCallerIdentityInput) (*sts.GetCallerIdentityOutput, error) {
+					return normalResp, nil
+				},
+			},
+		},
+	}
+
+	m := awsmocker.Start(t, awsmocker.WithoutDefaultMocks(), awsmocker.WithMocks(mocks...))
+	stsClient := sts.NewFromConfig(m.Config())
+
+	for i := 0; i < len(mocks); i++ {
+
+		resp, err := stsClient.GetCallerIdentity(context.TODO(), nil)
+		require.NoError(t, err)
+		require.Equalf(t, awsmocker.DefaultAccountId, *resp.Account, "AccountID Mismatch")
+	}
+}
+
+func TestStsGetCallerIdentity_WithMap(t *testing.T) {
+	m := awsmocker.Start(t, awsmocker.WithoutDefaultMocks(), awsmocker.WithMocks(&awsmocker.MockedEndpoint{
+		Request: &awsmocker.MockedRequest{
+			Service: "sts",
+			Action:  "GetCallerIdentity",
+		},
+		Response: &awsmocker.MockedResponse{
+			Body: map[string]any{
+				"Account": awsmocker.DefaultAccountId,
+				"Arn":     fmt.Sprintf("arn:aws:iam::%s:user/fakeuser", awsmocker.DefaultAccountId),
+				"UserId":  "AKIAI44QH8DHBEXAMPLE",
+			},
+		},
+	}),
+	)
+	stsClient := sts.NewFromConfig(m.Config())
 
 	resp, err := stsClient.GetCallerIdentity(context.TODO(), nil)
 	require.NoError(t, err)
@@ -105,77 +182,76 @@ func TestStsGetCallerIdentity_WithMap(t *testing.T) {
 }
 
 func TestDynamicMocker(t *testing.T) {
-	awsmocker.Start(t, &awsmocker.MockerOptions{
-		Mocks: []*awsmocker.MockedEndpoint{
-			{
-				Request: &awsmocker.MockedRequest{
-					Service:       "events",
-					Action:        "PutRule",
-					MaxMatchCount: 1,
-				},
-				Response: &awsmocker.MockedResponse{
-					Body: func(rr *awsmocker.ReceivedRequest) string {
-						name, _ := jmespath.Search("Name", rr.JsonPayload)
-						return awsmocker.EncodeAsJson(map[string]interface{}{
-							"RuleArn": fmt.Sprintf("arn:aws:events:%s:%s:rule/%s", rr.Region, awsmocker.DefaultAccountId, name.(string)),
-						})
-					},
-				},
+	m := awsmocker.Start(t, awsmocker.WithMocks([]*awsmocker.MockedEndpoint{
+		{
+			Request: &awsmocker.MockedRequest{
+				Service:       "events",
+				Action:        "PutRule",
+				MaxMatchCount: 1,
 			},
-			{
-				Request: &awsmocker.MockedRequest{
-					Service:       "events",
-					Action:        "PutRule",
-					MaxMatchCount: 1,
-				},
-				Response: &awsmocker.MockedResponse{
-					Body: func(rr *awsmocker.ReceivedRequest) (string, int) {
-						name, _ := jmespath.Search("Name", rr.JsonPayload)
-						return awsmocker.EncodeAsJson(map[string]interface{}{
-							"RuleArn": fmt.Sprintf("arn:aws:events:%s:%s:rule/x%s", rr.Region, awsmocker.DefaultAccountId, name.(string)),
-						}), 200
-					},
-				},
-			},
-			{
-				Request: &awsmocker.MockedRequest{
-					Service:       "events",
-					Action:        "PutRule",
-					MaxMatchCount: 1,
-				},
-				Response: &awsmocker.MockedResponse{
-					Body: func(rr *awsmocker.ReceivedRequest) (string, int, string) {
-						name, _ := jmespath.Search("Name", rr.JsonPayload)
-						return awsmocker.EncodeAsJson(map[string]interface{}{
-							"RuleArn": fmt.Sprintf("arn:aws:events:%s:%s:rule/y%s", rr.Region, awsmocker.DefaultAccountId, name.(string)),
-						}), 200, awsmocker.ContentTypeJSON
-					},
-				},
-			},
-			{
-				Request: &awsmocker.MockedRequest{
-					Service:       "events",
-					Action:        "PutRule",
-					MaxMatchCount: 1,
-				},
-				Response: &awsmocker.MockedResponse{
-					Body: func(rr *awsmocker.ReceivedRequest) (string, int, string, string) {
-						name, _ := jmespath.Search("Name", rr.JsonPayload)
-						return awsmocker.EncodeAsJson(map[string]interface{}{
-							"RuleArn": fmt.Sprintf("arn:aws:events:%s:%s:rule/y%s", rr.Region, awsmocker.DefaultAccountId, name.(string)),
-						}), 200, awsmocker.ContentTypeJSON, "wut"
-					},
+			Response: &awsmocker.MockedResponse{
+				Body: func(rr *awsmocker.ReceivedRequest) string {
+					name, _ := jmespath.Search("Name", rr.JsonPayload)
+					return awsmocker.EncodeAsJson(map[string]any{
+						"RuleArn": fmt.Sprintf("arn:aws:events:%s:%s:rule/%s", rr.Region, awsmocker.DefaultAccountId, name.(string)),
+					})
 				},
 			},
 		},
-	})
+		{
+			Request: &awsmocker.MockedRequest{
+				Service:       "events",
+				Action:        "PutRule",
+				MaxMatchCount: 1,
+			},
+			Response: &awsmocker.MockedResponse{
+				Body: func(rr *awsmocker.ReceivedRequest) (string, int) {
+					name, _ := jmespath.Search("Name", rr.JsonPayload)
+					return awsmocker.EncodeAsJson(map[string]any{
+						"RuleArn": fmt.Sprintf("arn:aws:events:%s:%s:rule/x%s", rr.Region, awsmocker.DefaultAccountId, name.(string)),
+					}), 200
+				},
+			},
+		},
+		{
+			Request: &awsmocker.MockedRequest{
+				Service:       "events",
+				Action:        "PutRule",
+				MaxMatchCount: 1,
+			},
+			Response: &awsmocker.MockedResponse{
+				Body: func(rr *awsmocker.ReceivedRequest) (string, int, string) {
+					name, _ := jmespath.Search("Name", rr.JsonPayload)
+					return awsmocker.EncodeAsJson(map[string]any{
+						"RuleArn": fmt.Sprintf("arn:aws:events:%s:%s:rule/y%s", rr.Region, awsmocker.DefaultAccountId, name.(string)),
+					}), 200, awsmocker.ContentTypeJSON
+				},
+			},
+		},
+		{
+			Request: &awsmocker.MockedRequest{
+				Service:       "events",
+				Action:        "PutRule",
+				MaxMatchCount: 1,
+			},
+			Response: &awsmocker.MockedResponse{
+				Body: func(rr *awsmocker.ReceivedRequest) (string, int, string, string) {
+					name, _ := jmespath.Search("Name", rr.JsonPayload)
+					return awsmocker.EncodeAsJson(map[string]any{
+						"RuleArn": fmt.Sprintf("arn:aws:events:%s:%s:rule/y%s", rr.Region, awsmocker.DefaultAccountId, name.(string)),
+					}), 200, awsmocker.ContentTypeJSON, "wut"
+				},
+			},
+		},
+	}...),
+	)
 
-	client := eventbridge.NewFromConfig(testutil.GetAwsConfig())
+	client := eventbridge.NewFromConfig(m.Config())
 
 	tables := []struct {
 		name          string
 		expectedArn   string
-		errorContains interface{}
+		errorContains any
 	}{
 		{"testrule", "arn:aws:events:us-east-1:555555555555:rule/testrule", nil},
 		{"testrule", "arn:aws:events:us-east-1:555555555555:rule/xtestrule", nil},
@@ -214,9 +290,9 @@ func TestStartMockServerForTest(t *testing.T) {
 	// END REALLY TALKING TO AWS
 
 	// start the test mocker server
-	awsmocker.Start(t, &awsmocker.MockerOptions{})
+	m := awsmocker.Start(t)
 
-	stsClient := sts.NewFromConfig(testutil.GetAwsConfig())
+	stsClient := sts.NewFromConfig(m.Config())
 
 	resp, err := stsClient.GetCallerIdentity(context.TODO(), nil)
 	require.NoError(t, err)
@@ -224,65 +300,74 @@ func TestStartMockServerForTest(t *testing.T) {
 }
 
 func TestDefaultMocks(t *testing.T) {
-	awsmocker.Start(t, nil)
+	m := awsmocker.Start(t)
 
-	stsClient := sts.NewFromConfig(testutil.GetAwsConfig())
-
-	resp, err := stsClient.GetCallerIdentity(context.TODO(), nil)
-	require.NoError(t, err)
-	require.EqualValuesf(t, awsmocker.DefaultAccountId, *resp.Account, "account id mismatch")
-}
-
-func TestBypass(t *testing.T) {
-	awsmocker.Start(t, &awsmocker.MockerOptions{
-		DoNotProxy: "example.com",
-	})
-
-	httpresp, err := http.Head("http://example.com/")
-	require.NoError(t, err)
-	require.Equal(t, http.StatusOK, httpresp.StatusCode)
-
-	stsClient := sts.NewFromConfig(testutil.GetAwsConfig())
+	stsClient := sts.NewFromConfig(m.Config())
 
 	resp, err := stsClient.GetCallerIdentity(context.TODO(), nil)
 	require.NoError(t, err)
 	require.EqualValuesf(t, awsmocker.DefaultAccountId, *resp.Account, "account id mismatch")
-
 }
 
-func TestBypassReject(t *testing.T) {
-	awsmocker.Start(t, &awsmocker.MockerOptions{
-		DoNotProxy:                 "example.com",
-		DoNotFailUnhandledRequests: true,
-	})
+func TestWithoutDefaultMocks(t *testing.T) {
+	m := awsmocker.Start(t, awsmocker.WithoutDefaultMocks(), awsmocker.WithoutFailingUnhandledRequests())
+	stsClient := sts.NewFromConfig(m.Config())
 
-	client := &http.Client{
-		Transport: &http.Transport{
-			Proxy: http.ProxyFromEnvironment,
-			TLSClientConfig: &tls.Config{
-				InsecureSkipVerify: true,
-			},
-		},
-	}
-
-	resp, err := client.Head("https://example.org/")
-	require.NoError(t, err)
-	require.Equal(t, "webdestroya", resp.TLS.PeerCertificates[0].Subject.Organization[0])
-	require.Equal(t, http.StatusNotImplemented, resp.StatusCode)
-	// require.ErrorContains(t, err, "Not Implemented")
-
-	resp = nil
-
-	resp, err = http.Get("http://example.org/")
-	require.NoError(t, err)
-	defer resp.Body.Close()
-	require.Equal(t, http.StatusNotImplemented, resp.StatusCode)
+	_, err := stsClient.GetCallerIdentity(context.TODO(), nil)
+	require.Error(t, err)
+	require.ErrorContains(t, err, "AccessDenied")
 }
+
+// func TestBypass(t *testing.T) {
+// 	awsmocker.Start(t, &awsmocker.MockerOptions{
+// 		DoNotProxy: "example.com",
+// 	})
+
+// 	httpresp, err := http.Head("http://example.com/")
+// 	require.NoError(t, err)
+// 	require.Equal(t, http.StatusOK, httpresp.StatusCode)
+
+// 	stsClient := sts.NewFromConfig(testutil.GetAwsConfig())
+
+// 	resp, err := stsClient.GetCallerIdentity(context.TODO(), nil)
+// 	require.NoError(t, err)
+// 	require.EqualValuesf(t, awsmocker.DefaultAccountId, *resp.Account, "account id mismatch")
+
+// }
+
+// func TestBypassReject(t *testing.T) {
+// 	awsmocker.Start(t, &awsmocker.MockerOptions{
+// 		DoNotProxy:                 "example.com",
+// 		DoNotFailUnhandledRequests: true,
+// 	})
+
+// 	client := &http.Client{
+// 		Transport: &http.Transport{
+// 			Proxy: http.ProxyFromEnvironment,
+// 			TLSClientConfig: &tls.Config{
+// 				InsecureSkipVerify: true,
+// 			},
+// 		},
+// 	}
+
+// 	resp, err := client.Head("https://example.org/")
+// 	require.NoError(t, err)
+// 	require.Equal(t, "webdestroya", resp.TLS.PeerCertificates[0].Subject.Organization[0])
+// 	require.Equal(t, http.StatusNotImplemented, resp.StatusCode)
+// 	// require.ErrorContains(t, err, "Not Implemented")
+
+// 	resp = nil
+
+// 	resp, err = http.Get("http://example.org/")
+// 	require.NoError(t, err)
+// 	defer resp.Body.Close()
+// 	require.Equal(t, http.StatusNotImplemented, resp.StatusCode)
+// }
 
 func TestSendingRegularRequestToProxy(t *testing.T) {
 	info := awsmocker.Start(t, nil)
 
-	resp, err := http.Get(info.ProxyURL + "/testing")
+	resp, err := http.Get(info.ProxyURL() + "/testing")
 	require.NoError(t, err)
 	defer resp.Body.Close()
 	require.Equal(t, http.StatusNotImplemented, resp.StatusCode)

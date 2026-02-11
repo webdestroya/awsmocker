@@ -12,29 +12,25 @@ import (
 )
 
 func TestResponseDebugLogging(t *testing.T) {
-	info := awsmocker.Start(t, &awsmocker.MockerOptions{
-		SkipDefaultMocks: true,
-		ReturnAwsConfig:  true,
-		Mocks: []*awsmocker.MockedEndpoint{
-			{
-				Request: &awsmocker.MockedRequest{
-					Hostname: "httptest.com",
-				},
-				Response: awsmocker.MockResponse_Error(400, "SomeCode_HTTP", "SomeMessage"),
+	info := awsmocker.Start(t, awsmocker.WithoutDefaultMocks(),
+		awsmocker.WithMocks(&awsmocker.MockedEndpoint{
+			Request: &awsmocker.MockedRequest{
+				Hostname: "httptest.com",
 			},
-			{
-				Request: &awsmocker.MockedRequest{
-					Hostname: "httpstest.com",
-				},
-				Response: awsmocker.MockResponse_Error(401, "SomeCode_HTTPS", "SomeMessage"),
+			Response: awsmocker.MockResponse_Error(400, "SomeCode_HTTP", "SomeMessage"),
+		}),
+		awsmocker.WithMocks(&awsmocker.MockedEndpoint{
+			Request: &awsmocker.MockedRequest{
+				Hostname: "httpstest.com",
 			},
-		},
-	})
+			Response: awsmocker.MockResponse_Error(401, "SomeCode_HTTPS", "SomeMessage"),
+		}),
+	)
 
 	client := &http.Client{
 		Transport: &http.Transport{
 			Proxy: func(r *http.Request) (*url.URL, error) {
-				return url.Parse(info.ProxyURL)
+				return url.Parse(info.ProxyURL())
 			},
 			TLSClientConfig: &tls.Config{
 				InsecureSkipVerify: true,

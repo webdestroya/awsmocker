@@ -10,14 +10,14 @@ import (
 
 func TestJmesPathMatching(t *testing.T) {
 	var j = []byte(`{"foo": {"bar": {"baz": [0, 1, 2, 3, 4, 4.5, true, false, null, "hello"]}}}`)
-	var d interface{}
+	var d any
 	err := json.Unmarshal(j, &d)
 	require.NoError(t, err)
 
 	t.Run("test generic expressions", func(t *testing.T) {
 		tables := []struct {
 			expr string
-			val  interface{}
+			val  any
 		}{
 			{"foo.bar.baz[99]", nil},
 			{"foo.bar.baz[2]", int(2)},
@@ -45,7 +45,7 @@ func TestJmesPathMatching(t *testing.T) {
 	t.Run("bad expected values", func(t *testing.T) {
 		tables := []struct {
 			expr string
-			val  interface{}
+			val  any
 		}{
 			{"some goofy expression", []int{2}},
 
